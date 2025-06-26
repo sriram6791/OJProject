@@ -1,0 +1,19 @@
+<!-- templates/home.html -->
+{% extends 'base.html' %}
+
+{% block title %}Home - Online Judge{% endblock %}
+
+{% block content %}
+    <div class="text-center py-5">
+        <h1 class="display-4">Welcome to the Online Judge!</h1>
+        {% if user.is_authenticated %}
+            <p class="lead">You are logged in as {{ user.username }} (Role: {{ user.role }}).</p>
+            <p>Start solving problems or manage your profile!</p>
+            <!-- Add links to problem list or user profile here -->
+        {% else %}
+            <p class="lead">Register or log in to participate in coding challenges.</p>
+            <a href="{% url 'users:register' %}" class="btn btn-primary btn-lg mx-2">Register</a>
+            <a href="{% url 'users:login' %}" class="btn btn-secondary btn-lg mx-2">Login</a>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!-- templates/users/login.html -->
+{% extends 'base.html' %}
+
+{% block title %}Login - Online Judge{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card p-4">
+                <h2 class="card-title text-center mb-4">Login</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">Username or Email</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+                        {{ form.password }}
+                    </div>
+                    {% for error in form.non_field_errors %}
+                        <div class="text-danger small mb-3">{{ error }}</div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+                <p class="text-center mt-3">Don't have an account? <a href="{% url 'users:register' %}">Register here</a></p>
+            </div>
+        </div>
+    </div>
+{% endblock %}
