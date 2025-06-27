@@ -55,6 +55,14 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    {# NEW: Links for Problems and Leaderboard #}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'problems:list' %}">Problems</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'leaderboard:main' %}">Leaderboard</a>
+                    </li>
+                    {# Existing auth links #}
                     {% if user.is_authenticated %}
                         <li class="nav-item">
                             <span class="nav-link">Welcome, {{ user.username }} ({{ user.role }})!</span>

@@ -1,0 +1,102 @@
+<!-- templates/problems/problem_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ problem.name }} - Online Judge{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card p-4 mb-4">
+                <h2 class="card-title">{{ problem.name }}</h2>
+                <span class="badge bg-{{ problem.difficulty|lower }} mb-3">{{ problem.difficulty|capfirst }}</span>
+                <hr>
+                <div class="card-text">
+                    {{ problem.statement|safe }} {# Use 'safe' filter if problem statement might contain HTML #}
+                </div>
+                <hr>
+                <h4 class="mt-4">Sample Input:</h4>
+                <pre class="bg-light p-3 rounded border"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.input_data }}{% break %}{% endif %}{% endfor %}</code></pre>
+                <h4 class="mt-4">Sample Output:</h4>
+                <pre class="bg-light p-3 rounded border"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.expected_output }}{% break %}{% endif %}{% endfor %}</code></pre>
+            </div>
+
+            <div class="card p-4 mb-4">
+                <h3 class="mb-3">Submit Your Solution</h3>
+                {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'submissions:submit_code' problem.id %}"> {# Action points to future submission URL #}
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="languageSelect" class="form-label">Language</label>
+                            <select class="form-select rounded-md" id="languageSelect" name="language" required>
+                                {% for lang in language_choices %}
+                                    <option value="{{ lang|lower }}">{{ lang }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="codeEditor" class="form-label">Your Code</label>
+                            <textarea class="form-control rounded-md" id="codeEditor" name="code" rows="15" placeholder="Write your code here..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success rounded-md">Submit Code</button>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning text-center" role="alert">
+                        Please <a href="{% url 'users:login' %}">log in</a> to submit a solution.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card p-4">
+                <h3 class="mb-3">Your Submissions</h3>
+                {% if user_submissions %}
+                    <ul class="list-group">
+                        {% for submission in user_submissions %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center mb-2 rounded-md">
+                                <div>
+                                    <strong>{{ submission.submitted_at|date:"M d, H:i" }}</strong> -
+                                    <span class="badge bg-info text-dark me-1">{{ submission.language|capfirst }}</span>
+                                    {% if submission.final_verdict == 'accepted' %}
+                                        <span class="badge bg-success">Accepted</span>
+                                    {% elif submission.final_verdict == 'wrong_answer' %}
+                                        <span class="badge bg-danger">Wrong Answer</span>
+                                    {% elif submission.final_verdict == 'time_limit_exceeded' %}
+                                        <span class="badge bg-warning text-dark">Time Limit Exceeded</span>
+                                    {% elif submission.final_verdict == 'runtime_error' %}
+                                        <span class="badge bg-danger">Runtime Error</span>
+                                    {% elif submission.final_verdict == 'compilation_error' %}
+                                        <span class="badge bg-danger">Compilation Error</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ submission.final_verdict|capfirst }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if submission.final_verdict != 'pending' %}
+                                    <small>
+                                        {% if submission.passed_test_cases is not None %}
+                                            {{ submission.passed_test_cases }}/{{ submission.total_test_cases }}
+                                        {% endif %}
+                                        {% if submission.execution_time %}
+                                            | {{ submission.execution_time }}s
+                                        {% endif %}
+                                    </small>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="alert alert-secondary" role="alert">
+                        You have no submissions for this problem yet.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+<style>
+    /* Custom styles for badges as used in problem_list.html */
+    .badge.bg-easy { background-color: #28a745 !important; }
+    .badge.bg-medium { background-color: #ffc107 !important; }
+    .badge.bg-hard { background-color: #dc3545 !important; }
+</style>

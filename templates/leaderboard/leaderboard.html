@@ -1,0 +1,43 @@
+<!-- templates/leaderboard/leaderboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Leaderboard - Online Judge{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4 text-center">Top 10 Solvers</h1>
+
+    {% if top_users %}
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card p-4">
+                    <table class="table table-hover">
+                        <thead class="table-dark rounded-top-md">
+                            <tr>
+                                <th scope="col">Rank</th>
+                                <th scope="col">Username</th>
+                                <th scope="col">Problems Solved</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in top_users %}
+                                <tr>
+                                    <th scope="row">{{ forloop.counter }}</th>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.solved_problems_count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No users found on the leaderboard yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center" role="alert">
+            The leaderboard is currently empty. Start solving problems!
+        </div>
+    {% endif %}
+{% endblock %}

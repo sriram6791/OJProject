@@ -1,0 +1,11 @@
+# problems/urls.py
+
+from django.urls import path
+from . import views
+
+app_name = 'problems' # Namespace for this app's URLs
+
+urlpatterns = [
+    path('', views.problem_list_view, name='list'),
+    path('<int:problem_id>/', views.problem_detail_view, name='detail'),
+]
