@@ -1,13 +1,3 @@
-You're encountering a series of very common (and frustrating\!) environment setup issues when mixing Windows, WSL, and Python virtual environments. Let's get this absolutely clear and working.
-
-**Crucial Point: All your Python development (Django, Celery, virtual environments, `pip` commands) and service running (Redis, Celery worker) for this project should happen *inside your WSL terminal*.**
-
-Even though your project files are on your `I:` drive in Windows, WSL can access them via `/mnt/i/Online_Judge`. This is where you need to do all your work for this Django project's backend.
-
-Let's go through a **complete, step-by-step reset of your environment setup within WSL** to eliminate these conflicts. Follow these steps meticulously in your WSL terminal.
-
------
-
 ### **Definitive Guide: Setting Up Your Development Environment in WSL**
 
 **Step 0: Start Fresh & Clean Up**
@@ -136,3 +126,46 @@ Now you're ready to run all components correctly. You will need three separate W
         ```
 
 This should finally get all your components running correctly without the errors you've been seeing. Take your time with each step, and ensure the virtual environment is always active when installing Python packages or running Django/Celery commands.
+
+
+# Project Screenshots till last milestone
+
+Here are some screenshots showcasing various functionalities of the Online Judge platform:
+
+---
+
+### Problems List Page
+![Problem List Page Screenshot](ScreeenShots/problem_list.png)
+_A clear overview of all available coding problems._
+
+---
+
+### Problem Detail Page (Part 1)
+![Problem Detail Page 1 Screenshot](ScreeenShots/problems_page1.png)
+_Displays the problem statement, input/output format, and examples._
+
+---
+
+### Problem Detail Page (Part 2 - Submission Area)
+![Problem Detail Page 2 Screenshot](ScreeenShots/problems_page2.png)
+_Features the code editor and submission options for a problem._
+
+---
+
+### Submitted Code Detail Page
+![Submitted Code Detail Screenshot](ScreeenShots/submittedcode.png)
+_Detailed view of a specific code submission, including verdict and errors._
+
+---
+
+### User Profile Page
+![User Profile Page Screenshot](ScreeenShots/profile.png)
+_Personalized dashboard showing user statistics and details._
+
+---
+
+### Leaderboard Page
+![Leaderboard Page Screenshot](ScreeenShots/Leaderboard.png)
+_Showcases top users based on solved problems._
+
+---
