@@ -23,5 +23,6 @@ urlpatterns = [
     path('accounts/',include('users.urls')),
     path('problems/',include('problems.urls')),
     path('leaderboard/',include('leaderboard.urls')),
+    path('submissions/', include('submissions.urls')), 
     path('',TemplateView.as_view(template_name='home.html'), name='home')
 ]

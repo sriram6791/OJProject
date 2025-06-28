@@ -1,0 +1,55 @@
+<!-- templates/users/profile.html -->
+{% extends 'base.html' %}
+
+{% block title %}My Profile - Online Judge{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card p-4 shadow-sm">
+                <h2 class="card-title text-center mb-4">User Profile</h2>
+                <div class="card-body">
+                    <p><strong>Username:</strong> {{ user_profile.username }}</p>
+                    <p><strong>Email:</strong> {{ user_profile.email }}</p>
+                    {% if user_profile.first_name or user_profile.last_name %}
+                        <p><strong>Name:</strong> {{ user_profile.first_name }} {{ user_profile.last_name }}</p>
+                    {% endif %}
+                    <p><strong>Role:</strong> <span class="badge bg-primary">{{ user_profile.role|capfirst }}</span></p>
+                    <p><strong>Member Since:</strong> {{ user_profile.date_joined|date:"M d, Y" }}</p>
+                </div>
+                <hr>
+                <h3 class="card-title text-center mb-4">Submission Statistics</h3>
+                <div class="card-body row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded-md bg-light">
+                            <h5>Total Submissions</h5>
+                            <p class="fs-4 fw-bold text-info">{{ total_submissions }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded-md bg-light">
+                            <h5>Accepted Submissions</h5>
+                            <p class="fs-4 fw-bold text-success">{{ accepted_submissions }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded-md bg-light">
+                            <h5>Problems Solved</h5>
+                            <p class="fs-4 fw-bold text-primary">{{ solved_problems_count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+<style>
+    /* Add any specific styles for the profile page if needed */
+    .p-3.border.rounded-md.bg-light {
+        border-color: #dee2e6 !important; /* light gray border */
+    }
+    .badge.bg-primary {
+        background-color: #0d6efd !important; /* Bootstrap primary blue */
+    }
+</style>

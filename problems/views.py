@@ -1,7 +1,8 @@
 from django.shortcuts import render,get_object_or_404
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import Problem, Submission
+from .models import Problem
+from submissions.models import Submission
 
 
 # Create your views here.

@@ -1,0 +1,74 @@
+<!-- templates/submissions/submission_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}Submission #{{ submission.id }} - Online Judge{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card p-4 shadow-sm mb-4">
+                <h2 class="card-title text-center mb-4">Submission #{{ submission.id }} Details</h2>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Problem:</strong> <a href="{% url 'problems:detail' submission.problem.id %}">{{ submission.problem.name }}</a></p>
+                        <p><strong>Submitted By:</strong> {{ submission.user.username }}</p>
+                        <p><strong>Submitted At:</strong> {{ submission.submitted_at|date:"M d, Y H:i:s" }}</p>
+                        <p><strong>Language:</strong> {{ submission.language|capfirst }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Status:</strong>
+                            <span class="badge {% if submission.status == 'finished' %}bg-success{% else %}bg-info{% endif %}">
+                                {{ submission.status|capfirst }}
+                            </span>
+                        </p>
+                        <p><strong>Final Verdict:</strong>
+                            <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ submission.get_final_verdict_display }}
+                            </span>
+                        </p>
+                        {% if submission.total_test_cases %}
+                            <p><strong>Test Cases:</strong> {{ submission.passed_test_cases|default:0 }} / {{ submission.total_test_cases }}</p>
+                        {% endif %}
+                        {% if submission.execution_time %}
+                            <p><strong>Execution Time:</strong> {{ submission.execution_time }} s</p>
+                        {% endif %}
+                        {% if submission.memory_used %}
+                            <p><strong>Memory Used:</strong> {{ submission.memory_used }} MB</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <h3 class="mt-4">Submitted Code:</h3>
+                <div class="bg-dark text-white p-3 rounded-md mb-4" style="overflow-x: auto;">
+                    <pre><code class="language-{{ submission.language }}">{{ submission.code }}</code></pre>
+                </div>
+
+                {% if submission.error_message %}
+                    <h3 class="mt-4 text-danger">Error Details:</h3>
+                    <div class="alert alert-danger p-3 rounded-md" role="alert" style="overflow-x: auto;">
+                        <pre><code>{{ submission.error_message }}</code></pre>
+                    </div>
+                {% elif submission.final_verdict == 'wrong_answer' %}
+                    <div class="alert alert-warning" role="alert">
+                        Your code produced incorrect output for one or more test cases.
+                        (Further test case details will be available in a future enhancement).
+                    </div>
+                {% endif %}
+
+                <div class="text-center mt-4">
+                    <a href="{% url 'problems:detail' submission.problem.id %}" class="btn btn-secondary rounded-md">Back to Problem</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+<style>
+    /* Styling for the code block (basic, consider a syntax highlighter later) */
+    pre code {
+        display: block;
+        padding: 10px;
+        color: #e8e8e8; /* Light gray text on dark background */
+    }
+</style>

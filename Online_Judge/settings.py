@@ -39,8 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'users.apps.UsersConfig',
-    'problems',
-    'leaderboard'
+    'problems.apps.ProblemsConfig',
+    'leaderboard.apps.LeaderboardConfig',
+    'submissions.apps.SubmissionsConfig',
 ]
 
 MIDDLEWARE = [
@@ -137,3 +138,16 @@ MESSAGE_TAGS = {
     messages.WARNING: 'alert-warning',
     messages.ERROR: 'alert-danger',
 }
+
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0' # Redis as broker
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0' # Redis to store results
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata' # Ensure this matches your Django TIME_ZONE
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True # Important for production
+# Optional: task_acks_late and worker_prefetch_multiplier can optimize performance
+# CELERY_TASK_ACKS_LATE = True
+# CELERY_WORKER_PREFETCH_MULTIPLIER = 1

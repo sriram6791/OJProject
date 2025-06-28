@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Problem, TestCase, Submission
+from .models import Problem, TestCase
+from submissions.models import Submission
 
 # Register your models here.
 
@@ -21,10 +22,3 @@ class TestCaseAdmin(admin.ModelAdmin):
     search_fields = ('problem__name','input_data','expected_output')
     list_editable = ('order','is_hidden')
     
-    
-@admin.register(Submission)
-class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'problem', 'language', 'status', 'final_verdict', 'submitted_at')
-    list_filter = ('status', 'final_verdict', 'language', 'submitted_at')
-    search_fields = ('user__username', 'problem__name', 'code')
-    readonly_fields = ('user', 'problem', 'code', 'submitted_at', 'execution_time', 'memory_used') # These fields are set by the system

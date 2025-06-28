@@ -1,0 +1,43 @@
+# Python virtual environment
+venv/
+.venv/
+env/
+.env/
+
+# Byte-code files
+*.pyc
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+
+# Django-specific files
+*.log
+
+
+# Celery specific
+celerybeat.pid
+celeryd.pid
+celeryd@*.pid
+celery/
+*.log
+
+# Judge Core Temporary files (important for your project!)
+oj_submissions/ # The temporary directory created by judge_core
+
+# IDE-specific files (add as needed)
+.vscode/ # VS Code settings/temp files
+.idea/   # PyCharm/IntelliJ IDEA project files
+
+# Operating System Files
+.DS_Store
+.Trashes
+Thumbs.db
+
+# Misc
+*.swp
+*~
+.nfs*
+
+# Logs
+*.log
