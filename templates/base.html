@@ -80,22 +80,6 @@
                             <a class="nav-link" href="{% url 'users:login' %}">Login</a>
                         </li>
                     {% endif %}
-                    {# Existing auth links #}
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <span class="nav-link">Welcome, {{ user.username }} ({{ user.role }})!</span>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'users:logout' %}">Logout</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'users:register' %}">Register</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'users:login' %}">Login</a>
-                        </li>
-                    {% endif %}
                 </ul>
             </div>
         </div>
