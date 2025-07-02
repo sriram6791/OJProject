@@ -5,9 +5,9 @@ from .models import CustomUser
 
 
 class UserRegistrationForm(UserCreationForm):
-    email = forms.EmailField(required=True,help_text='Required. Enter a vaild email address.')
-    first_row = forms.CharField(max_length=30,required=False)
-    last_row = forms.CharField(max_length=150,required=False)
+    email = forms.EmailField(required=True,help_text='Required. Enter a valid email address.')
+    first_name = forms.CharField(max_length=30,required=False)
+    last_name = forms.CharField(max_length=150,required=False)
     role = forms.ChoiceField(choices=CustomUser.ROLE_CHOICES,initial='student',required=True)
     
     class Meta(UserCreationForm.Meta):
@@ -15,10 +15,10 @@ class UserRegistrationForm(UserCreationForm):
         fields = UserCreationForm.Meta.fields + ('email' , 'first_name' , 'last_name' , 'role',)
         
     def clean_email(self):
-            email = self.cleaned_data.get('email')
-            if CustomUser.objects.filter(email= email).exists():
-                raise forms.ValidationError( " Auser with that email alredy exists.")
-            return email
+        email = self.cleaned_data.get('email')
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with that email already exists.")
+        return email
         
 class UserLoginForm(AuthenticationForm):
     username = forms.CharField(label="Username or Email")

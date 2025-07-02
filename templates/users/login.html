@@ -1,30 +1,132 @@
-<!-- templates/users/login.html -->
 {% extends 'base.html' %}
 
-{% block title %}Login - Online Judge{% endblock %}
+{% block title %}Login - CodeArena{% endblock %}
 
 {% block content %}
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card p-4">
-                <h2 class="card-title text-center mb-4">Login</h2>
-                <form method="post">
-                    {% csrf_token %}
+<div class="container">
+    <div class="row justify-content-center py-5">
+        <div class="col-md-8 col-lg-6 col-xl-5">
+            <div class="card border-0 shadow-lg">
+                <!-- Card Header -->
+                <div class="card-header text-center py-4 border-0" style="background: linear-gradient(135deg, #0d6efd 0%, #6f42c1 100%);">
                     <div class="mb-3">
-                        <label for="{{ form.username.id_for_label }}" class="form-label">Username or Email</label>
-                        {{ form.username }}
+                        <div class="d-inline-flex align-items-center justify-content-center bg-white bg-opacity-25 rounded-circle" style="width: 64px; height: 64px;">
+                            <i class="fas fa-sign-in-alt fa-2x text-white"></i>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
-                        {{ form.password }}
-                    </div>
-                    {% for error in form.non_field_errors %}
-                        <div class="text-danger small mb-3">{{ error }}</div>
-                    {% endfor %}
-                    <button type="submit" class="btn btn-primary w-100">Login</button>
-                </form>
-                <p class="text-center mt-3">Don't have an account? <a href="{% url 'users:register' %}">Register here</a></p>
+                    <h2 class="text-white fw-bold mb-1">Welcome Back</h2>
+                    <p class="text-white-75 mb-0">Sign in to continue to CodeArena</p>
+                </div>
+
+                <!-- Card Body with Form -->
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- General Form Errors -->
+                        {% for error in form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                        <!-- Username Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label fw-semibold text-dark">Username or Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-user text-muted"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    name="{{ form.username.name }}"
+                                    id="{{ form.username.id_for_label }}"
+                                    class="form-control border-start-0 py-2 {% if form.username.errors %}is-invalid{% endif %}"
+                                    placeholder="e.g., john.doe"
+                                    value="{{ form.username.value|default_if_none:'' }}"
+                                    required
+                                >
+                            </div>
+                            {% for error in form.username.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="mb-4">
+                            <label for="{{ form.password.id_for_label }}" class="form-label fw-semibold text-dark">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input
+                                    type="password"
+                                    name="{{ form.password.name }}"
+                                    id="{{ form.password.id_for_label }}"
+                                    class="form-control border-start-0 border-end-0 py-2 {% if form.password.errors %}is-invalid{% endif %}"
+                                    placeholder="Enter your password"
+                                    required
+                                >
+                                <button 
+                                    type="button" 
+                                    class="btn btn-outline-secondary border-start-0"
+                                    id="togglePasswordBtn"
+                                    style="border-color: #ced4da;"
+                                >
+                                    <i class="fas fa-eye" id="passwordIcon"></i>
+                                </button>
+                            </div>
+                            {% for error in form.password.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-semibold">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </button>
+                        </div>
+
+                        <!-- Divider -->
+                        <hr class="my-4">
+
+                        <!-- Register Link -->
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                Don't have an account? 
+                                <a href="{% url 'users:register' %}" class="text-decoration-none fw-semibold">
+                                    Create one here
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButton = document.getElementById('togglePasswordBtn');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', function() {
+            const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+            const passwordIcon = document.getElementById('passwordIcon');
+            
+            // Toggle the type
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+            
+            // Toggle the icon
+            passwordIcon.classList.toggle('fa-eye');
+            passwordIcon.classList.toggle('fa-eye-slash');
+        });
+    }
+});
+</script>
 {% endblock %}

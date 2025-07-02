@@ -1,95 +1,291 @@
-<!-- templates/problems/problem_list.html -->
 {% extends 'base.html' %}
 
-{% block title %}Problems - Online Judge{% endblock %}
+{% block title %}Problems - CodeArena{% endblock %}
 
 {% block content %}
-    <h1 class="mb-4 text-center">Problem List</h1>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Section -->
+            <div class="bg-primary text-white rounded-3 p-4 mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="display-5 fw-bold mb-2">
+                            <i class="fas fa-code me-3"></i>Problem Set
+                        </h1>
+                        <p class="lead mb-0">Challenge yourself with our curated collection of programming problems</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="badge bg-light text-primary fs-6 px-3 py-2">
+                            <i class="fas fa-tasks me-2"></i>{{ page_obj.paginator.count }} Problems
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <div class="row mb-4 align-items-center">
-        <!-- Search Form -->
-        <div class="col-md-5">
-            <form method="get" action="{% url 'problems:list' %}" class="d-flex">
-                <input class="form-control me-2 rounded-md" type="search" placeholder="Search problems" aria-label="Search" name="q" value="{{ search_query|default_if_none:'' }}">
-                <button class="btn btn-outline-primary rounded-md" type="submit">Search</button>
-            </form>
-        </div>
+            <!-- Filters Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Search -->
+                        <div class="col-md-6">
+                            <form method="get" action="{% url 'problems:list' %}">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="Search problems..."
+                                        name="q"
+                                        value="{{ search_query|default_if_none:'' }}"
+                                    />
+                                    {% if selected_difficulty and selected_difficulty != 'all' %}
+                                        <input type="hidden" name="difficulty" value="{{ selected_difficulty }}">
+                                    {% endif %}
+                                    {% if sort_by %}
+                                        <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                                    {% endif %}
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-search me-1"></i>Search
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
 
-        <!-- Filter and Sort Forms -->
-        <div class="col-md-7 d-flex justify-content-end">
-            <!-- Filter by Difficulty -->
-            <form method="get" action="{% url 'problems:list' %}" class="d-flex me-3">
-                <select name="difficulty" class="form-select rounded-md" onchange="this.form.submit()">
-                    <option value="all" {% if not selected_difficulty or selected_difficulty == 'all' %}selected{% endif %}>All Difficulties</option>
-                    {% for diff in difficulties %}
-                        <option value="{{ diff }}" {% if selected_difficulty == diff %}selected{% endif %}>{{ diff|capfirst }}</option>
+                        <!-- Difficulty Filter -->
+                        <div class="col-md-3">
+                            <form method="get" action="{% url 'problems:list' %}">
+                                <div class="input-group">
+                                    <label class="input-group-text">
+                                        <i class="fas fa-filter me-1"></i>Difficulty
+                                    </label>
+                                    <select name="difficulty" class="form-select" onchange="this.form.submit()">
+                                        <option value="all" {% if not selected_difficulty or selected_difficulty == 'all' %}selected{% endif %}>All</option>
+                                        {% for diff in difficulties %}
+                                            <option value="{{ diff }}" {% if selected_difficulty == diff %}selected{% endif %}>{{ diff|capfirst }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% if search_query %}
+                                    <input type="hidden" name="q" value="{{ search_query }}">
+                                {% endif %}
+                                {% if sort_by %}
+                                    <input type="hidden" name="sort_by" value="{{ sort_by }}">
+                                {% endif %}
+                            </form>
+                        </div>
+
+                        <!-- Sort Filter -->
+                        <div class="col-md-3">
+                            <form method="get" action="{% url 'problems:list' %}">
+                                <div class="input-group">
+                                    <label class="input-group-text">
+                                        <i class="fas fa-sort me-1"></i>Sort
+                                    </label>
+                                    <select name="sort_by" class="form-select" onchange="this.form.submit()">
+                                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                                        <option value="difficulty_asc" {% if sort_by == 'difficulty_asc' %}selected{% endif %}>Difficulty ↑</option>
+                                        <option value="difficulty_desc" {% if sort_by == 'difficulty_desc' %}selected{% endif %}>Difficulty ↓</option>
+                                        <option value="created_at_desc" {% if sort_by == 'created_at_desc' %}selected{% endif %}>Newest</option>
+                                        <option value="created_at_asc" {% if sort_by == 'created_at_asc' %}selected{% endif %}>Oldest</option>
+                                    </select>
+                                </div>
+                                {% if search_query %}
+                                    <input type="hidden" name="q" value="{{ search_query }}">
+                                {% endif %}
+                                {% if selected_difficulty and selected_difficulty != 'all' %}
+                                    <input type="hidden" name="difficulty" value="{{ selected_difficulty }}">
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Problems List -->
+            {% if page_obj %}
+                <div class="row">
+                    {% for problem in page_obj %}
+                        <div class="col-12 mb-4">
+                            <div class="card shadow-sm border-0 hover-card">
+                                <div class="card-body p-4">
+                                    <div class="row align-items-center">
+                                        <!-- Problem Number -->
+                                        <div class="col-auto">
+                                            <div class="problem-number">
+                                                {{ forloop.counter }}
+                                            </div>
+                                        </div>
+
+                                        <!-- Problem Info -->
+                                        <div class="col">
+                                            <div class="d-flex align-items-start justify-content-between">
+                                                <div class="flex-grow-1">
+                                                    <h5 class="card-title mb-2">
+                                                        <a href="{% url 'problems:detail' problem.id %}" class="text-decoration-none text-dark fw-bold problem-title">
+                                                            {{ problem.name }}
+                                                        </a>
+                                                    </h5>
+                                                    <p class="card-text text-muted mb-3">
+                                                        {{ problem.statement|striptags|truncatechars:150 }}
+                                                    </p>
+                                                    <div class="d-flex align-items-center text-muted small">
+                                                        <i class="fas fa-calendar-alt me-2"></i>
+                                                        <span class="me-4">Added {{ problem.created_at|date:"M d, Y" }}</span>
+                                                        <i class="fas fa-code me-2"></i>
+                                                        <span>Interactive Problem</span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Difficulty Badge -->
+                                                <div class="ms-3">
+                                                    {% if problem.difficulty == 'easy' %}
+                                                        <span class="badge bg-success-soft text-success px-3 py-2 fs-6">
+                                                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Easy
+                                                        </span>
+                                                    {% elif problem.difficulty == 'medium' %}
+                                                        <span class="badge bg-warning-soft text-warning px-3 py-2 fs-6">
+                                                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Medium
+                                                        </span>
+                                                    {% elif problem.difficulty == 'hard' %}
+                                                        <span class="badge bg-danger-soft text-danger px-3 py-2 fs-6">
+                                                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Hard
+                                                        </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Action Button -->
+                                        <div class="col-auto">
+                                            <a href="{% url 'problems:detail' problem.id %}" class="btn btn-outline-primary">
+                                                <i class="fas fa-arrow-right me-2"></i>Solve
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     {% endfor %}
-                </select>
-                {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-                {% if sort_by %}<input type="hidden" name="sort_by" value="{{ sort_by }}">{% endif %}
-            </form>
+                </div>
 
-            <!-- Sort By -->
-            <form method="get" action="{% url 'problems:list' %}" class="d-flex">
-                <select name="sort_by" class="form-select rounded-md" onchange="this.form.submit()">
-                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Sort by Name (A-Z)</option>
-                    <option value="difficulty_asc" {% if sort_by == 'difficulty_asc' %}selected{% endif %}>Sort by Difficulty (Low to High)</option>
-                    <option value="difficulty_desc" {% if sort_by == 'difficulty_desc' %}selected{% endif %}>Sort by Difficulty (High to Low)</option>
-                    <option value="created_at_desc" {% if sort_by == 'created_at_desc' %}selected{% endif %}>Sort by Newest</option>
-                    <option value="created_at_asc" {% if sort_by == 'created_at_asc' %}selected{% endif %}>Sort by Oldest</option>
-                </select>
-                {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-                {% if selected_difficulty %}<input type="hidden" name="difficulty" value="{{ selected_difficulty }}">{% endif %}
-            </form>
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                    <div class="d-flex justify-content-between align-items-center mt-5">
+                        <div class="text-muted">
+                            Showing page <strong>{{ page_obj.number }}</strong> of <strong>{{ page_obj.paginator.num_pages }}</strong>
+                            ({{ page_obj.paginator.count }} total problems)
+                        </div>
+                        <nav aria-label="Problems pagination">
+                            <ul class="pagination pagination-lg mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_difficulty and selected_difficulty != 'all' %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                            <i class="fas fa-chevron-left me-1"></i>Previous
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% for i in page_obj.paginator.page_range %}
+                                    {% if i == page_obj.number %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ i }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_difficulty and selected_difficulty != 'all' %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">{{ i }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_difficulty and selected_difficulty != 'all' %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">
+                                            Next<i class="fas fa-chevron-right ms-1"></i>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="fas fa-search fa-4x text-muted mb-4"></i>
+                        <h3 class="text-muted mb-3">No Problems Found</h3>
+                        <p class="text-muted mb-4">We couldn't find any problems matching your criteria. Try adjusting your search or filters.</p>
+                        <a href="{% url 'problems:list' %}" class="btn btn-primary">
+                            <i class="fas fa-refresh me-2"></i>Reset Filters
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
-
-    {% if page_obj %}
-        <div class="list-group">
-            {% for problem in page_obj %}
-                <a href="{% url 'problems:detail' problem.id %}" class="list-group-item list-group-item-action mb-2 card">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">{{ problem.name }}</h5>
-                        <small class="badge bg-{{ problem.difficulty|lower }}">{{ problem.difficulty|capfirst }}</small>
-                    </div>
-                    <p class="mb-1 text-truncate">{{ problem.statement|striptags|truncatechars:150 }}</p>
-                    <small>Added: {{ problem.created_at|date:"M d, Y" }}</small>
-                </a>
-            {% endfor %}
-        </div>
-
-        <!-- Pagination Controls -->
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link rounded-md" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">Previous</a>
-                    </li>
-                {% endif %}
-
-                {% for i in page_obj.paginator.page_range %}
-                    <li class="page-item {% if page_obj.number == i %}active{% endif %}">
-                        <a class="page-link rounded-md" href="?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">{{ i }}</a>
-                    </li>
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link rounded-md" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}{% if sort_by %}&sort_by={{ sort_by }}{% endif %}">Next</a>
-                    </li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% else %}
-        <div class="alert alert-info text-center" role="alert">
-            No problems found matching your criteria.
-        </div>
-    {% endif %}
-{% endblock %}
+</div>
 
 <style>
-    /* Custom CSS for difficulty badges */
-    .badge.bg-easy { background-color: #28a745 !important; } /* Green */
-    .badge.bg-medium { background-color: #ffc107 !important; } /* Yellow */
-    .badge.bg-hard { background-color: #dc3545 !important; } /* Red */
+.hover-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.hover-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    border-left-color: var(--bs-primary);
+}
+
+.problem-number {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.problem-title:hover {
+    color: var(--bs-primary) !important;
+}
+
+.bg-success-soft {
+    background-color: rgba(25, 135, 84, 0.1);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+}
+
+.bg-warning-soft {
+    background-color: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.2);
+}
+
+.bg-danger-soft {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.empty-state {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.pagination-lg .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    border: 1px solid #dee2e6;
+}
+
+.pagination-lg .page-item.active .page-link {
+    background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+    border-color: var(--bs-primary);
+}
 </style>
+{% endblock %}

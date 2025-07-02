@@ -1,43 +1,116 @@
-<!-- templates/leaderboard/leaderboard.html -->
 {% extends 'base.html' %}
 
 {% block title %}Leaderboard - Online Judge{% endblock %}
 
 {% block content %}
-    <h1 class="mb-4 text-center">Top 10 Solvers</h1>
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-dark mb-3">
+            <i class="fas fa-trophy text-warning me-3"></i>Leaderboard
+        </h1>
+        <p class="lead text-muted">Top performers in our coding community</p>
+    </div>
 
     {% if top_users %}
         <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card p-4">
-                    <table class="table table-hover">
-                        <thead class="table-dark rounded-top-md">
-                            <tr>
-                                <th scope="col">Rank</th>
-                                <th scope="col">Username</th>
-                                <th scope="col">Problems Solved</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for user in top_users %}
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list-ol me-2"></i>Top Performers
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th scope="row">{{ forloop.counter }}</th>
-                                    <td>{{ user.username }}</td>
-                                    <td>{{ user.solved_problems_count }}</td>
+                                    <th scope="col" class="px-4 py-3">Rank</th>
+                                    <th scope="col" class="px-4 py-3">Username</th>
+                                    <th scope="col" class="px-4 py-3">Problems Solved</th>
                                 </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="3" class="text-center">No users found on the leaderboard yet.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {% for user in top_users %}
+                                    <tr class="{% if forloop.counter <= 3 %}table-warning{% endif %}">
+                                        <td class="px-4 py-3">
+                                            {% if forloop.counter == 1 %}
+                                                <span class="badge bg-warning text-dark fs-6">
+                                                    <i class="fas fa-crown me-1"></i>{{ forloop.counter }}
+                                                </span>
+                                            {% elif forloop.counter == 2 %}
+                                                <span class="badge bg-secondary fs-6">
+                                                    <i class="fas fa-medal me-1"></i>{{ forloop.counter }}
+                                                </span>
+                                            {% elif forloop.counter == 3 %}
+                                                <span class="badge bg-warning text-dark fs-6">
+                                                    <i class="fas fa-award me-1"></i>{{ forloop.counter }}
+                                                </span>
+                                            {% else %}
+                                                <span class="fw-bold fs-5">{{ forloop.counter }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
+                                                     style="width: 40px; height: 40px;">
+                                                    {{ user.username.0|upper }}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-semibold">{{ user.username }}</div>
+                                                    {% if user.first_name or user.last_name %}
+                                                        <small class="text-muted">{{ user.first_name }} {{ user.last_name }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="fw-bold text-success fs-5">{{ user.solved_problems_count|default:0 }}</span>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center py-4 text-muted">
+                                            <i class="fas fa-info-circle me-2"></i>No users found on the leaderboard yet.
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     {% else %}
-        <div class="alert alert-info text-center" role="alert">
-            The leaderboard is currently empty. Start solving problems!
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="alert alert-info text-center" role="alert">
+                    <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
+                    <h5>The leaderboard is currently empty</h5>
+                    <p class="mb-3">Start solving problems to claim your spot!</p>
+                    <a href="{% url 'problems:list' %}" class="btn btn-primary">
+                        <i class="fas fa-code me-2"></i>Start Solving Problems
+                    </a>
+                </div>
+            </div>
         </div>
     {% endif %}
+</div>
+
+<style>
+.table-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.card {
+    border-radius: 12px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+}
+
+.badge {
+    font-size: 0.85rem !important;
+}
+</style>
 {% endblock %}

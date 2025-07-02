@@ -1,11 +1,29 @@
-from django.urls import path
-from . import views
+# users/urls.py
 
-app_name = 'users'
+from django.urls import path
+from .views import (
+    UserRegisterAPIView, 
+    UserLoginAPIView, 
+    UserLogoutAPIView, 
+    UserProfileAPIView,
+    register_view,
+    login_view,
+    logout_view,
+    profile_view
+)
+
+app_name = 'users'  # Namespace for both API and template URLs
 
 urlpatterns = [
-    path('register/' , views.register_view,name = 'register'),
-    path('login/',views.login_view,name='login'),
-    path('logout/',views.logout_view,name='logout'),
-    path('profile/', views.profile_view, name='profile'), # New URL for profile page
+    # Template-based views
+    path('register/', register_view, name='register'),
+    path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
+    path('profile/', profile_view, name='profile'),
+
+    # API views
+    path('api/register/', UserRegisterAPIView.as_view(), name='register_api'),
+    path('api/login/', UserLoginAPIView.as_view(), name='login_api'),
+    path('api/logout/', UserLogoutAPIView.as_view(), name='logout_api'),
+    path('api/profile/', UserProfileAPIView.as_view(), name='profile_api'),
 ]

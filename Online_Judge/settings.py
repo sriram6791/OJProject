@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from django.contrib.messages import constants as messages
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'problems.apps.ProblemsConfig',
     'leaderboard.apps.LeaderboardConfig',
     'submissions.apps.SubmissionsConfig',
+    'rest_framework', # Django REST Framework
+    'rest_framework.authtoken', # For token authentication
+    'corsheaders', # Django CORS Headers
 ]
 
 MIDDLEWARE = [
@@ -63,6 +66,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -123,12 +127,72 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_collected') # Added STATIC_ROOT for collectstatic
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] # Optional: if you have global static files
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model (as per HLD for roles)
+AUTH_USER_MODEL = 'users.CustomUser' # This tells Django to use our custom user model
+
+# Redirect URLs after login/logout (these are for traditional Django views, not strictly needed for API)
+LOGIN_REDIRECT_URL = '/' # Redirect to home page after successful login
+LOGOUT_REDIRECT_URL = '/' # Redirect to home page after successful logout
+LOGIN_URL = '/accounts/login/' # URL to redirect to for login when @login_required is used
+
+# Messages framework settings (optional, but good for styling)
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.DEBUG: 'alert-info',
+    messages.INFO: 'alert-info',
+    messages.SUCCESS: 'alert-success',
+    messages.WARNING: 'alert-warning',
+    messages.ERROR: 'alert-danger',
+}
+
+# Django REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication', # Use Token Authentication
+        'rest_framework.authentication.SessionAuthentication', # Optional: for browsable API
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly', # Default to read-only for unauthenticated users
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10, # Default page size for list views
+}
+
+# CORS Headers settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173", # Your React development server
+    "http://127.0.0.1:5173",
+    # Add your production frontend URL here when deployed
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_ALLOW_CREDENTIALS = True # Allow cookies/authentication headers to be sent cross-origin
 
 # Messages framework settings (optional, but good for styling)
 MESSAGE_TAGS = {

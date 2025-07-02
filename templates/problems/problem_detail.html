@@ -1,103 +1,183 @@
 <!-- templates/problems/problem_detail.html -->
 {% extends 'base.html' %}
-{# REMOVE THIS LINE: {% load custom_filters %} #}
 
 {% block title %}{{ problem.name }} - Online Judge{% endblock %}
 
+{% block extra_css %}
+<!-- CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.css">
+{% endblock %}
+
 {% block content %}
-    <div class="row">
+<div class="container-fluid py-4">
+    <div class="row g-4">
         <div class="col-lg-8">
-            <div class="card p-4 mb-4">
-                <h2 class="card-title">{{ problem.name }}</h2>
-                <span class="badge bg-{{ problem.difficulty|lower }} mb-3">{{ problem.difficulty|capfirst }}</span>
-                <hr>
-                <div class="card-text">
-                    {{ problem.statement|safe }} {# Use 'safe' filter if problem statement might contain HTML #}
+            <!-- Problem Statement Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
+                    <h2 class="mb-0 fw-bold text-dark">{{ problem.name }}</h2>
+                    {% if problem.difficulty == 'easy' %}
+                        <span class="badge bg-success px-3 py-2 fs-6">
+                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Easy
+                        </span>
+                    {% elif problem.difficulty == 'medium' %}
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6">
+                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Medium
+                        </span>
+                    {% elif problem.difficulty == 'hard' %}
+                        <span class="badge bg-danger px-3 py-2 fs-6">
+                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Hard
+                        </span>
+                    {% endif %}
                 </div>
-                <hr>
-                <h4 class="mt-4">Sample Input:</h4>
-<pre class="bg-light p-3 rounded border"><code>{% for tc in problem.test_cases.all %}
-    {% if not tc.is_hidden %}
-        {{ tc.input_data }}
-        {# We only want the first, so the loop effectively breaks by not adding more after the first #}
-        {# This is not a 'break' tag, but implicit due to how we structure or might use .first in view #}
-    {% endif %}
-{% empty %}
-    No sample input available.
-{% endfor %}</code></pre>
-
-<h4 class="mt-4">Sample Output:</h4>
-<pre class="bg-light p-3 rounded border"><code>{% for tc in problem.test_cases.all %}
-    {% if not tc.is_hidden %}
-        {{ tc.expected_output }}
-    {% endif %}
-{% empty %}
-    No sample output available.
-{% endfor %}</code></pre>
-            </div>
-
-            <div class="card p-4 mb-4">
-                <h3 class="mb-3">Submit Your Solution</h3>
-                {% if user.is_authenticated %}
-                    <form id="submissionForm" method="post" action="{% url 'submissions:submit_code' problem.id %}">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="languageSelect" class="form-label">Language</label>
-                            <select class="form-select rounded-md" id="languageSelect" name="language" required>
-                                <option value="python">Python</option>
-                                <option value="cpp">C++</option>
-                                <option value="java">Java</option>
-                            </select>
+                
+                <div class="card-body p-4">
+                    <div class="problem-content mb-4">
+                        <div class="text-muted lh-lg" style="font-size: 15px;">
+                            {{ problem.statement|safe }}
                         </div>
-                        <div class="mb-3">
-                            <label for="codeEditor" class="form-label">Your Code</label>
-                            <textarea class="form-control rounded-md" id="codeEditor" name="code" rows="15" placeholder="Write your code here..." required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success rounded-md">Submit Code</button>
-                    </form>
-                {% else %}
-                    <div class="alert alert-warning text-center" role="alert">
-                        Please <a href="{% url 'users:login' %}">log in</a> to submit a solution.
                     </div>
-                {% endif %}
-            </div>
-        </div>
 
-        <div class="col-lg-4">
-            <div class="card p-4">
-                <h3 class="mb-3">Your Submissions</h3>
-                <div id="userSubmissionsList">
-                    {% if user_submissions %}
-                        <ul class="list-group">
-                            {% for submission in user_submissions %}
-                                <a href="{% url 'submissions:detail' submission.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-2 rounded-md" id="submission-{{ submission.id }}">
-                                    <div>
-                                        <strong>{{ submission.submitted_at|date:"M d, H:i" }}</strong> -
-                                        <span class="badge bg-info text-dark me-1">{{ submission.language|capfirst }}</span>
-                                        <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %}" data-submission-status="{{ submission.status }}">
-                                            {{ submission.get_final_verdict_display }}
-                                        </span>
-                                    </div>
-                                    <small>
-                                        {% if submission.total_test_cases %}
-                                            {{ submission.passed_test_cases|default:0 }}/{{ submission.total_test_cases }}
-                                        {% endif %}
-                                        {% if submission.execution_time %}
-                                            | {{ submission.execution_time }}s
-                                        {% endif %}
-                                    </small>
-                                </a>
-                            {% endfor %}
-                        </ul>
+                    <!-- Sample Input/Output in a compact row -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="bg-light rounded-3 p-3 border">
+                                <h6 class="fw-bold text-success mb-3">
+                                    <i class="fas fa-arrow-right me-2"></i>Sample Input
+                                </h6>
+                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 13px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.input_data }}{% endif %}{% empty %}No sample input available.{% endfor %}</code></pre>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light rounded-3 p-3 border">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="fas fa-arrow-left me-2"></i>Sample Output
+                                </h6>
+                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 13px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.expected_output }}{% endif %}{% empty %}No sample output available.{% endfor %}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Submission Card -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-code me-2 text-primary"></i>Submit Your Solution
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if user.is_authenticated %}
+                        <form id="submissionForm" method="post" action="{% url 'submissions:submit_code' problem.id %}">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="languageSelect" class="form-label fw-semibold">Language</label>
+                                    <select class="form-select" id="languageSelect" name="language" required>
+                                        <option value="python">Python</option>
+                                        <option value="cpp">C++</option>
+                                        <option value="java">Java</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="fas fa-paper-plane me-2"></i>Submit Code
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                    <label for="codeEditor" class="form-label fw-semibold">Your Code</label>
+                                    <textarea class="form-control border" id="codeEditor" name="code" rows="12" 
+                                            placeholder="Write your solution here..." required
+                                            style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 14px; line-height: 1.5;"></textarea>
+                            </div>
+                        </form>
                     {% else %}
-                        <div class="alert alert-secondary" role="alert">
-                            You have no submissions for this problem yet.
+                        <div class="alert alert-warning border-0" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle me-3 fa-2x text-warning"></i>
+                                <div>
+                                    <h6 class="mb-1">Authentication Required</h6>
+                                    <p class="mb-0">Please <a href="{% url 'users:login' %}" class="fw-bold text-decoration-none">log in</a> to submit a solution.</p>
+                                </div>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- Right Sidebar: Submissions -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-history me-2 text-success"></i>Your Submissions
+                    </h4>
+                </div>
+                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                    <div id="userSubmissionsList">
+                        {% if user_submissions %}
+                            <div class="list-group list-group-flush">
+                                {% for submission in user_submissions %}
+                                    <a href="{% url 'submissions:detail' submission.id %}" 
+                                       class="list-group-item list-group-item-action border-0 px-4 py-3" 
+                                       id="submission-{{ submission.id }}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center mb-2">
+                                                    {% if submission.final_verdict == 'accepted' %}
+                                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                                    {% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' %}
+                                                        <i class="fas fa-times-circle text-danger me-2"></i>
+                                                    {% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}
+                                                        <i class="fas fa-clock text-warning me-2"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-circle-notch text-secondary me-2"></i>
+                                                    {% endif %}
+                                                    <strong class="text-dark">{{ submission.submitted_at|date:"M d, H:i" }}</strong>
+                                                </div>
+                                                <div class="d-flex gap-2 mb-2">
+                                                    <span class="badge bg-info text-dark">{{ submission.language|capfirst }}</span>
+                                                    <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %}" 
+                                                          data-submission-status="{{ submission.status }}">
+                                                        {{ submission.get_final_verdict_display }}
+                                                    </span>
+                                                </div>
+                                                {% if submission.total_test_cases or submission.execution_time %}
+                                                    <small class="text-muted d-block">
+                                                        {% if submission.total_test_cases %}
+                                                            <i class="fas fa-vials me-1"></i>{{ submission.passed_test_cases|default:0 }}/{{ submission.total_test_cases }} tests
+                                                        {% endif %}
+                                                        {% if submission.execution_time %}
+                                                            <i class="fas fa-clock ms-2 me-1"></i>{{ submission.execution_time }}s
+                                                        {% endif %}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-end">
+                                                <i class="fas fa-chevron-right text-muted"></i>
+                                            </div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-code fa-3x text-muted mb-3 d-block"></i>
+                                <h5 class="text-muted mb-3">No submissions yet</h5>
+                                <p class="text-muted px-3">You haven't submitted any solutions for this problem yet. Write your code and hit submit!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -206,7 +286,7 @@
         const pendingSubmissions = document.querySelectorAll('.badge[data-submission-status="pending"], .badge[data-submission-status="processing"]');
         for (let i = 0; i < pendingSubmissions.length; i++) {
             const badge = pendingSubmissions[i];
-            const submissionItem = badge.closest('li[id^="submission-"]');
+            const submissionItem = badge.closest('a[id^="submission-"]');
             if (submissionItem) {
                 const submissionId = submissionItem.id.split('-')[1];
                 if (submissionId) {
@@ -222,22 +302,136 @@
                 const submitButton = submissionForm.querySelector('button[type="submit"]');
                 if (submitButton) {
                     submitButton.disabled = true;
-                    submitButton.textContent = 'Submitting...';
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
                     
                     // Re-enable button after a delay to prevent accidental double submissions
                     setTimeout(function() {
                         submitButton.disabled = false;
-                        submitButton.textContent = 'Submit Code';
+                        submitButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Code';
                     }, 3000);
                 }
             });
         }
     });
 </script>
+
 <style>
-    /* Custom styles for badges as used in problem_list.html */
-    .badge.bg-easy { background-color: #28a745 !important; }
-    .badge.bg-medium { background-color: #ffc107 !important; }
-    .badge.bg-hard { background-color: #dc3545 !important; }
+/* Modern styling enhancements */
+.card {
+    border-radius: 12px !important;
+    transition: all 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.list-group-item {
+    border-radius: 0 !important;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+    border-left: 4px solid #0d6efd !important;
+}
+
+pre {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+pre::-webkit-scrollbar {
+    width: 6px;
+}
+
+pre::-webkit-scrollbar-track {
+    background: #f1f3f4;
+    border-radius: 3px;
+}
+
+pre::-webkit-scrollbar-thumb {
+    background: #c1c8cd;
+    border-radius: 3px;
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+    background: #a8b3ba;
+}
+
+/* Sample input/output section styling */
+.bg-light {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef !important;
+}
+
+.text-success {
+    color: #198754 !important;
+}
+
+.text-primary {
+    color: #0d6efd !important;
+}
+
+/* Submissions sidebar custom scrollbar */
+.card-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-body::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+    background: #dee2e6;
+    border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
+}
+
+/* Custom badge colors */
+.badge.bg-easy { background-color: #28a745 !important; }
+.badge.bg-medium { background-color: #ffc107 !important; color: #212529 !important; }
+.badge.bg-hard { background-color: #dc3545 !important; }
+
+/* Code textarea styling */
+#codeEditor {
+    resize: vertical;
+    min-height: 200px;
+}
+
+#codeEditor::placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
 </style>
 {% endblock %}
