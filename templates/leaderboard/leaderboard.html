@@ -1,95 +1,112 @@
 {% extends 'base.html' %}
 
-{% block title %}Leaderboard - Online Judge{% endblock %}
+{% block title %}Leaderboard - CodeArena{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold text-dark mb-3">
-            <i class="fas fa-trophy text-warning me-3"></i>Leaderboard
+        <h1 class="display-3 fw-bold mb-3">
+            <i class="fas fa-trophy text-gradient me-3"></i>Leaderboard
         </h1>
-        <p class="lead text-muted">Top performers in our coding community</p>
+        <p class="lead fs-4 text-muted">See who's conquering the challenges in our coding community.</p>
     </div>
 
     {% if top_users %}
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-list-ol me-2"></i>Top Performers
-                        </h5>
+        <div class="row justify-content-center align-items-end mb-5 g-4">
+
+            <div class="col-lg-5 col-md-6 order-md-2">
+                <div class="podium-card rank-1 text-center h-100">
+                     <div class="podium-rank-badge">
+                        <i class="fas fa-crown"></i> 1
                     </div>
-                    <div class="card-body p-0">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col" class="px-4 py-3">Rank</th>
-                                    <th scope="col" class="px-4 py-3">Username</th>
-                                    <th scope="col" class="px-4 py-3">Problems Solved</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for user in top_users %}
-                                    <tr class="{% if forloop.counter <= 3 %}table-warning{% endif %}">
-                                        <td class="px-4 py-3">
-                                            {% if forloop.counter == 1 %}
-                                                <span class="badge bg-warning text-dark fs-6">
-                                                    <i class="fas fa-crown me-1"></i>{{ forloop.counter }}
-                                                </span>
-                                            {% elif forloop.counter == 2 %}
-                                                <span class="badge bg-secondary fs-6">
-                                                    <i class="fas fa-medal me-1"></i>{{ forloop.counter }}
-                                                </span>
-                                            {% elif forloop.counter == 3 %}
-                                                <span class="badge bg-warning text-dark fs-6">
-                                                    <i class="fas fa-award me-1"></i>{{ forloop.counter }}
-                                                </span>
-                                            {% else %}
-                                                <span class="fw-bold fs-5">{{ forloop.counter }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="d-flex align-items-center">
-                                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
-                                                     style="width: 40px; height: 40px;">
-                                                    {{ user.username.0|upper }}
-                                                </div>
-                                                <div>
-                                                    <div class="fw-semibold">{{ user.username }}</div>
-                                                    {% if user.first_name or user.last_name %}
-                                                        <small class="text-muted">{{ user.first_name }} {{ user.last_name }}</small>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <span class="fw-bold text-success fs-5">{{ user.solved_problems_count|default:0 }}</span>
-                                        </td>
-                                    </tr>
-                                {% empty %}
-                                    <tr>
-                                        <td colspan="3" class="text-center py-4 text-muted">
-                                            <i class="fas fa-info-circle me-2"></i>No users found on the leaderboard yet.
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="podium-avatar mx-auto">
+                        {{ top_users.0.username.0|upper }}
                     </div>
+                    <h5 class="fw-bold mt-3 mb-1">{{ top_users.0.username }}</h5>
+                    {% if top_users.0.first_name or top_users.0.last_name %}
+                        <p class="text-muted mb-3"><small>{{ top_users.0.first_name }} {{ top_users.0.last_name }}</small></p>
+                    {% endif %}
+                    <div class="podium-score">{{ top_users.0.solved_problems_count|default:0 }}</div>
+                    <p class="text-muted">Problems Solved</p>
                 </div>
             </div>
+
+            {% if top_users|length > 1 %}
+            <div class="col-lg-3 col-md-6 order-md-1">
+                <div class="podium-card rank-2 text-center h-100">
+                    <div class="podium-rank-badge">
+                        <i class="fas fa-medal"></i> 2
+                    </div>
+                    <div class="podium-avatar mx-auto">
+                        {{ top_users.1.username.0|upper }}
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-1">{{ top_users.1.username }}</h5>
+                    {% if top_users.1.first_name or top_users.1.last_name %}
+                        <p class="text-muted mb-3"><small>{{ top_users.1.first_name }} {{ top_users.1.last_name }}</small></p>
+                    {% endif %}
+                    <div class="podium-score">{{ top_users.1.solved_problems_count|default:0 }}</div>
+                    <p class="text-muted">Problems Solved</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if top_users|length > 2 %}
+            <div class="col-lg-3 col-md-6 order-md-3">
+                <div class="podium-card rank-3 text-center h-100">
+                     <div class="podium-rank-badge">
+                        <i class="fas fa-award"></i> 3
+                    </div>
+                    <div class="podium-avatar mx-auto">
+                        {{ top_users.2.username.0|upper }}
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-1">{{ top_users.2.username }}</h5>
+                    {% if top_users.2.first_name or top_users.2.last_name %}
+                        <p class="text-muted mb-3"><small>{{ top_users.2.first_name }} {{ top_users.2.last_name }}</small></p>
+                    {% endif %}
+                    <div class="podium-score">{{ top_users.2.solved_problems_count|default:0 }}</div>
+                    <p class="text-muted">Problems Solved</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
+
+        {% if top_users|length > 3 %}
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h4 class="text-center fw-bold mb-4">All Performers</h4>
+                <ul class="list-group list-group-flush leaderboard-list">
+                    {% for user in top_users|slice:"3:" %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <span class="rank-number me-3">{{ forloop.counter|add:3 }}</span>
+                                <div class="list-avatar me-3">{{ user.username.0|upper }}</div>
+                                <div>
+                                    <div class="fw-bold">{{ user.username }}</div>
+                                    {% if user.first_name or user.last_name %}
+                                        <small class="text-muted">{{ user.first_name }} {{ user.last_name }}</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge score-badge">{{ user.solved_problems_count|default:0 }} solved</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
     {% else %}
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="alert alert-info text-center" role="alert">
-                    <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
-                    <h5>The leaderboard is currently empty</h5>
-                    <p class="mb-3">Start solving problems to claim your spot!</p>
-                    <a href="{% url 'problems:list' %}" class="btn btn-primary">
-                        <i class="fas fa-code me-2"></i>Start Solving Problems
-                    </a>
+                <div class="card border-0 shadow-sm text-center p-4">
+                    <div class="card-body">
+                        <i class="fas fa-info-circle fa-3x text-gradient mb-3"></i>
+                        <h4 class="fw-bold">The Leaderboard is Empty</h4>
+                        <p class="text-muted mb-4">Be the first to solve a problem and claim the top spot!</p>
+                        <a href="{% url 'problems:list' %}" class="btn btn-primary">
+                            <i class="fas fa-code me-2"></i>Start Solving Problems
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -97,20 +114,144 @@
 </div>
 
 <style>
-.table-warning {
-    background-color: rgba(255, 193, 7, 0.1) !important;
-}
+    body {
+        background-color: #f8f9fa;
+    }
 
-.card {
-    border-radius: 12px;
-}
+    .text-gradient {
+        background: -webkit-linear-gradient(135deg, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-.table-hover tbody tr:hover {
-    background-color: rgba(13, 110, 253, 0.05) !important;
-}
+    .podium-card {
+        background-color: #ffffff;
+        border-radius: 1rem;
+        padding: 2rem 1.5rem;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
 
-.badge {
-    font-size: 0.85rem !important;
-}
+    .podium-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
+    }
+    
+    .rank-1:hover {
+        transform: scale(1.05) translateY(-8px);
+    }
+
+    .podium-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+    }
+    
+    .podium-card.rank-1 { 
+        border-color: #ffc107; 
+        transform: scale(1.05); /* Make 1st place bigger */
+    }
+    .podium-card.rank-1::before { background-color: #ffc107; }
+
+    .podium-card.rank-2 { border-color: #adb5bd; }
+    .podium-card.rank-2::before { background-color: #adb5bd; }
+
+    .podium-card.rank-3 { border-color: #cd7f32; }
+    .podium-card.rank-3::before { background-color: #cd7f32; }
+
+    .podium-rank-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        opacity: 0.7;
+    }
+    
+    .rank-1 .podium-rank-badge { font-size: 2.6rem; color: #ffc107; }
+    .rank-2 .podium-rank-badge { color: #5c6770; }
+    .rank-3 .podium-rank-badge { color: #cd7f32; }
+
+
+    .podium-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: bold;
+        box-shadow: 0 0 0 4px #fff, 0 0 0 6px var(--border-color);
+    }
+    
+    .rank-1 .podium-avatar { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #ffc107; }
+    .rank-2 .podium-avatar { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #adb5bd; }
+    .rank-3 .podium-avatar { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #cd7f32; }
+    
+    .podium-score {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #343a40;
+    }
+
+    .leaderboard-list .list-group-item {
+        background-color: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 0.75rem !important;
+        margin-bottom: 0.75rem;
+        padding: 1rem 1.5rem;
+        transition: all 0.2s ease-in-out;
+    }
+    .leaderboard-list .list-group-item:hover {
+        background-color: #f8f9fa;
+        transform: translateX(5px);
+        border-left: 5px solid #6366f1;
+    }
+
+    .rank-number {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #6c757d;
+        min-width: 30px;
+        text-align: center;
+    }
+
+    .list-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        color: #495057;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .score-badge {
+        font-size: 0.9rem;
+        padding: 0.5em 0.8em;
+        background-color: #e8e7ff !important;
+        color: #6366f1 !important;
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background-color: #6366f1;
+        border-color: #6366f1;
+    }
+    .btn-primary:hover {
+        background-color: #4f46e5;
+        border-color: #4f46e5;
+    }
 </style>
 {% endblock %}

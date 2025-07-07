@@ -141,10 +141,10 @@
                                             {% if user_submission_for_problem %}
                                                 <span class="ms-2">
                                                     {# Initial rendering of icon based on actual final_verdict (or status if verdict not yet set) #}
-                                                    {% if user_submission_for_problem.final_verdict == 'accepted' %}
+                                                    {% if user_submission_for_problem.status == 'accepted' %}
                                                         <i class="fas fa-check-circle text-success" title="Accepted"></i>
-                                                    {% elif user_submission_for_problem.final_verdict == 'wrong_answer' or user_submission_for_problem.final_verdict == 'runtime_error' or user_submission_for_problem.final_verdict == 'compilation_error' or user_submission_for_problem.final_verdict == 'judging_error' or user_submission_for_problem.final_verdict == 'time_limit_exceeded' or user_submission_for_problem.final_verdict == 'memory_limit_exceeded' %}
-                                                        <i class="fas fa-times-circle text-danger" title="{{ user_submission_for_problem.get_final_verdict_display }}"></i>
+                                                    {% elif user_submission_for_problem.status == 'wrong_answer' or user_submission_for_problem.status == 'runtime_error' or user_submission_for_problem.status == 'compilation_error' or user_submission_for_problem.status == 'judging_error' or user_submission_for_problem.status == 'time_limit_exceeded' or user_submission_for_problem.status == 'memory_limit_exceeded' %}
+                                                        <i class="fas fa-times-circle text-danger" title="{{ user_submission_for_problem.get_status_display }}"></i>
                                                     {% else %} {# For 'pending', 'processing', or initial state #}
                                                         <i class="fas fa-hourglass-half text-warning" title="Pending / Processing"></i>
                                                     {% endif %}
@@ -277,18 +277,18 @@
                                            id="contest-submission-{{ submission.id }}" {# Unique ID for JS targeting #}
                                            data-submission-id="{{ submission.id }}" {# Data attribute for submission ID #}
                                            data-submission-status="{{ submission.status }}" {# Data attribute for current status #}
-                                           data-submission-verdict="{{ submission.final_verdict|default:'pending' }}"> {# Data attribute for final verdict #}
+                                           data-submission-verdict="{{ submission.status|default:'pending' }}"> {# Data attribute for status #}
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex align-items-center mb-2">
                                                         {# Initial icon based on initial state from DB. JS will update this. #}
-                                                        {% if submission.final_verdict == 'accepted' %}
+                                                        {% if submission.status == 'accepted' %}
                                                             <i class="fas fa-check-circle text-success me-2 submission-icon"></i>
-                                                        {% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}
+                                                        {% elif submission.status == 'wrong_answer' or submission.status == 'runtime_error' or submission.status == 'compilation_error' or submission.status == 'judging_error' %}
                                                             <i class="fas fa-times-circle text-danger me-2 submission-icon"></i>
-                                                        {% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}
+                                                        {% elif submission.status == 'time_limit_exceeded' or submission.status == 'memory_limit_exceeded' %}
                                                             <i class="fas fa-clock text-warning me-2 submission-icon"></i>
-                                                        {% else %} {# Default for 'pending', 'processing', or missing final_verdict #}
+                                                        {% else %} {# Default for 'pending' or missing status #}
                                                             <i class="fas fa-circle-notch text-secondary me-2 fa-spin submission-icon"></i>
                                                         {% endif %}
                                                         <strong class="text-dark">{{ submission.submitted_at|date:"M d, H:i" }}</strong>
@@ -296,18 +296,13 @@
                                                     <div class="d-flex gap-2 mb-2">
                                                         <span class="badge bg-info text-dark">{{ submission.language|capfirst }}</span>
                                                         {# Initial badge based on initial state from DB. JS will update this. #}
-                                                        <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} submission-verdict-badge">
-                                                            {{ submission.get_final_verdict_display|default:"Pending" }}
+                                                        <span class="badge {% if submission.status == 'accepted' %}bg-success{% elif submission.status == 'wrong_answer' or submission.status == 'runtime_error' or submission.status == 'compilation_error' or submission.status == 'judging_error' %}bg-danger{% elif submission.status == 'time_limit_exceeded' or submission.status == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} submission-verdict-badge">
+                                                            {{ submission.get_status_display|default:"Pending" }}
                                                         </span>
                                                     </div>
-                                                    {% if submission.total_test_cases or submission.execution_time %}
+                                                    {% if submission.total_test_cases %}
                                                         <small class="text-muted d-block submission-metrics"> {# Renamed to submission-metrics for a broader container #}
-                                                            {% if submission.total_test_cases %}
-                                                                <i class="fas fa-vials me-1"></i><span class="tests-passed">{{ submission.test_cases_passed|default:0 }}</span>/<span class="tests-total">{{ submission.total_test_cases }}</span> tests
-                                                            {% endif %}
-                                                            {% if submission.execution_time %}
-                                                                <span class="ms-2"></span><i class="fas fa-clock me-1"></i><span class="execution-time">{{ submission.execution_time|floatformat:"3"|default:"0.000" }}</span>s
-                                                            {% endif %}
+                                                            <i class="fas fa-vials me-1"></i><span class="tests-passed">{{ submission.test_cases_passed|default:0 }}</span>/<span class="tests-total">{{ submission.total_test_cases }}</span> tests
                                                         </small>
                                                     {% endif %}
                                                 </div>
@@ -450,14 +445,12 @@
                 }
             }
 
-            // Update test cases and execution time
+            // Update test cases (execution time is not available for contest submissions)
             const testsPassedElement = submissionElement.querySelector('.tests-passed');
             const testsTotalElement = submissionElement.querySelector('.tests-total');
-            const executionTimeElement = submissionElement.querySelector('.execution-time');
 
             if (testsPassedElement) testsPassedElement.textContent = data.test_cases_passed || '0';
             if (testsTotalElement) testsTotalElement.textContent = data.total_test_cases || '0';
-            if (executionTimeElement) executionTimeElement.textContent = data.execution_time ? data.execution_time.toFixed(3) : '0.000'; // Format time
 
             // If status is 'finished', stop polling for this submission
             if (currentStatus === 'finished' && activePolls[submissionElement.dataset.submissionId]) {

@@ -204,62 +204,11 @@ class ContestSubmissionStatusAPIView(LoginRequiredMixin, View):
             'status': submission.status,
             'test_cases_passed': submission.test_cases_passed,
             'total_test_cases': submission.total_test_cases,
-            'execution_time': submission.execution_time,
+            'execution_time': 0.0,  # ContestSubmission doesn't have this field, so default to 0
             'judge_output': submission.judge_output, # If you have this field for errors/details
-            'final_verdict': submission.final_verdict if hasattr(submission, 'final_verdict') else 'pending', # Ensure this exists
+            'final_verdict': submission.status, # Use status as final_verdict for contest submissions
         }
         return JsonResponse(data)
 
 
 
-@method_decorator(csrf_exempt, name='dispatch') # For API views, though you should use CSRF tokens properly
-class ContestSubmissionCreateAPIView(LoginRequiredMixin, View):
-    """
-    Handles submission of code for a problem within a contest.
-    """
-    def post(self, request, contest_pk, problem_pk, *args, **kwargs):
-        try:
-            data = json.loads(request.body)
-            code = data.get('code')
-            language = data.get('language')
-
-            contest = get_object_or_404(Contest, pk=contest_pk)
-            problem = get_object_or_404(Problem, pk=problem_pk)
-            
-            # Ensure the problem is part of the contest
-            contest_problem = get_object_or_404(ContestProblem, contest=contest, problem=problem)
-
-            # Basic validation
-            if not code or not language:
-                return JsonResponse({'error': 'Code and language are required.'}, status=400)
-
-            # Create the ContestSubmission
-            submission = ContestSubmission.objects.create(
-                participant=request.user,
-                contest_problem=contest_problem,
-                code=code,
-                language=language, # Assuming you add a language field to ContestSubmission
-                status='pending', # Initial status
-                # Other fields like score, test_cases_passed will be updated by a judge
-            )
-
-            # In a real system, you would now send this submission to a judging queue
-            # For now, we'll just return success.
-            # You might want to simulate judging here for testing purposes.
-
-            return JsonResponse({
-                'message': 'Submission received successfully!',
-                'submission_id': submission.id,
-                'status': submission.status
-            }, status=201)
-
-        except json.JSONDecodeError:
-            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
-        except Contest.DoesNotExist:
-            return JsonResponse({'error': 'Contest not found.'}, status=404)
-        except Problem.DoesNotExist:
-            return JsonResponse({'error': 'Problem not found.'}, status=404)
-        except ContestProblem.DoesNotExist:
-            return JsonResponse({'error': 'Problem is not part of this contest.'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)

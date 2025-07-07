@@ -6,9 +6,12 @@ import tempfile
 import shutil
 import time
 
-# Base directory for temporary files
-TEMP_DIR_BASE = os.path.join(tempfile.gettempdir(), "oj_submissions")
-os.makedirs(TEMP_DIR_BASE, exist_ok=True)
+# Remove module-level model imports to avoid circular imports
+
+# --- REMOVE THESE LINES ---
+# TEMP_DIR_BASE = os.path.join(tempfile.gettempdir(), "oj_submissions")
+# os.makedirs(TEMP_DIR_BASE, exist_ok=True)
+# --- END REMOVAL ---
 
 def _run_docker_command(command, time_limit, memory_limit_mb, stdin_data=None, work_dir="/tmp"):
     """
@@ -92,7 +95,8 @@ def judge_python(code, input_data, time_limit, memory_limit_mb):
     Judges Python code using a Docker container.
     Returns (output, error, verdict, execution_time, memory_used).
     """
-    with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
+    # --- MODIFIED LINE: Removed dir=TEMP_DIR_BASE ---
+    with tempfile.TemporaryDirectory() as temp_dir:
         code_file_path = os.path.join(temp_dir, "solution.py")
         with open(code_file_path, "w") as f:
             f.write(code)
@@ -129,7 +133,8 @@ def judge_cpp(code, input_data, time_limit, memory_limit_mb):
     Judges C++ code using a Docker container. Involves compilation and then execution.
     Returns (output, error, verdict, execution_time, memory_used).
     """
-    with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
+    # --- MODIFIED LINE: Removed dir=TEMP_DIR_BASE ---
+    with tempfile.TemporaryDirectory() as temp_dir:
         source_file_path = os.path.join(temp_dir, "solution.cpp")
         # executable_file_path = os.path.join(temp_dir, "solution") # Not strictly needed
 
@@ -186,7 +191,8 @@ def judge_java(code, input_data, time_limit, memory_limit_mb):
     Judges Java code using a Docker container. Involves compilation and then execution.
     Assumes the main class is named 'Solution'.
     """
-    with tempfile.TemporaryDirectory(dir=TEMP_DIR_BASE) as temp_dir:
+    # --- MODIFIED LINE: Removed dir=TEMP_DIR_BASE ---
+    with tempfile.TemporaryDirectory() as temp_dir:
         source_file_name = "Solution.java" # Define the source file name
         source_file_path_host = os.path.join(temp_dir, source_file_name) # Host path
 
@@ -354,9 +360,10 @@ def evaluate_solution(submission_id):
         submission.save()
         print(f"Submission {submission.id} for Problem {problem.name} finished with verdict: {final_verdict}")
 
-    except Submission.DoesNotExist:
-        print(f"Submission with ID {submission_id} does not exist.")
     except Exception as e:
+        # Import inside exception handler to avoid circular import issues
+        from submissions.models import Submission
+        print(f"Submission with ID {submission_id} does not exist.")
         print(f"Error evaluating submission {submission_id}: {e}")
         try:
             submission = Submission.objects.get(id=submission_id)
@@ -364,7 +371,7 @@ def evaluate_solution(submission_id):
             submission.final_verdict = 'runtime_error'
             submission.error_message = f"Judge system error: {e}"
             submission.save()
-        except Submission.DoesNotExist:
+        except:
             pass
         
 def evaluate_contest_solution(contest_submission_id):
@@ -382,20 +389,19 @@ def evaluate_contest_solution(contest_submission_id):
         problem = contest_problem.problem # Get the actual Problem object
         test_cases = problem.test_cases.all().order_by('order')
 
-        contest_submission.status = 'processing'
+        contest_submission.status = 'pending'  # Set to pending to indicate processing
         contest_submission.save(update_fields=['status'])
 
         passed_count = 0
         total_count = test_cases.count()
 
         # Define limits (should align with problem difficulty or problem specific settings)
-        TIME_LIMIT_SECONDS = problem.time_limit # Use problem-specific limits if available
-        MEMORY_LIMIT_MB = problem.memory_limit # Use problem-specific limits if available
+        TIME_LIMIT_SECONDS = getattr(problem, 'time_limit', 5) # Use problem-specific limits if available
+        MEMORY_LIMIT_MB = getattr(problem, 'memory_limit', 256) # Use problem-specific limits if available
         
         # Fallback to default if problem limits are not set
         if not TIME_LIMIT_SECONDS: TIME_LIMIT_SECONDS = 5
         if not MEMORY_LIMIT_MB: MEMORY_LIMIT_MB = 256
-
 
         final_verdict = "accepted"
         last_error_message = "" # To store the most relevant error message
@@ -464,19 +470,14 @@ def evaluate_contest_solution(contest_submission_id):
                     if final_verdict == "accepted":
                         final_verdict = "wrong_answer"
 
-            # For simplicity, we'll store the execution time/memory of the last test case,
-            # or you might want to store the maximum across all tests.
-            contest_submission.execution_time = execution_time_tc
-            contest_submission.memory_used = memory_used_tc
-
-        contest_submission.status = 'finished'
-        contest_submission.passed_test_cases = passed_count
-        contest_submission.total_test_cases = total_count
-        contest_submission.final_verdict = final_verdict
+        # Update ContestSubmission fields using the correct field names
+        contest_submission.status = final_verdict  # Use status field for final verdict
+        contest_submission.test_cases_passed = passed_count  # Correct field name
+        contest_submission.total_test_cases = total_count    # Correct field name
         contest_submission.judge_output = last_error_message # Use judge_output field for error message
 
         # Set score for contest submission
-        if contest_submission.final_verdict == 'accepted':
+        if final_verdict == 'accepted':
             contest_submission.score = contest_problem.points
         else:
             contest_submission.score = 0 # No points for incorrect or failed submissions
@@ -484,15 +485,15 @@ def evaluate_contest_solution(contest_submission_id):
         contest_submission.save()
         print(f"Contest Submission {contest_submission.id} for Contest Problem {contest_problem.id} (Problem {problem.name}) finished with verdict: {final_verdict}")
 
-    except ContestSubmission.DoesNotExist:
-        print(f"Contest Submission with ID {contest_submission_id} does not exist.")
     except Exception as e:
+        # Import inside exception handler to avoid circular import issues
+        from contests.models import ContestSubmission
+        print(f"Contest Submission with ID {contest_submission_id} does not exist.")
         print(f"Error evaluating contest submission {contest_submission_id}: {e}")
         try:
             contest_submission = ContestSubmission.objects.get(id=contest_submission_id)
-            contest_submission.status = 'finished'
-            contest_submission.final_verdict = 'runtime_error' # Or 'judging_error'
+            contest_submission.status = 'runtime_error' # Or 'judging_error'
             contest_submission.judge_output = f"Judge system error: {e}"
             contest_submission.save()
-        except ContestSubmission.DoesNotExist:
+        except:
             pass

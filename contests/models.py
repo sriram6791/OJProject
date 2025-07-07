@@ -160,7 +160,7 @@ class ContestSubmission(models.Model):
     # Judging details (useful for feedback)
     test_cases_passed = models.IntegerField(default=0, help_text="Number of test cases passed")
     total_test_cases = models.IntegerField(default=0, help_text="Total number of test cases")
-    
+    language = models.CharField(max_length=50, default='python', help_text="Programming language used for the submission")
     # Optional: store judge output/error messages
     judge_output = models.TextField(blank=True, null=True, help_text="Output/error messages from the judge")
 

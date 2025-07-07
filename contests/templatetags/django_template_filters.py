@@ -7,9 +7,11 @@ register = template.Library()
 def first_submission_for_problem(submissions, problem):
     """
     Returns the first (latest) submission for a given problem from a queryset of submissions.
-    Assumes the submissions queryset is already filtered by user and contest, and ordered by submitted_at DESC.
+    Assumes the submissions queryset is already filtered by user and contest.
     """
-    for submission in submissions:
-        if submission.contest_problem.problem == problem:
-            return submission
-    return None
+    if not submissions or not problem:
+        return None
+    
+    # Filter the submissions for the specific problem and return the most recent one
+    matching_submissions = [s for s in submissions if s.contest_problem.problem == problem]
+    return matching_submissions[0] if matching_submissions else None

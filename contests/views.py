@@ -149,20 +149,30 @@ class ContestProblemSolveView(View):
             messages.info(request, "This contest currently has no problems available.")
             current_problem = None # Ensure current_problem is explicitly None if no problems
         
-        # Fetch user's submissions for this specific contest and problem
+        # Fetch user's submissions for this contest (all problems for the sidebar status)
         user_contest_submissions = []
-        if request.user.is_authenticated and current_problem:
+        current_problem_submissions = []
+        if request.user.is_authenticated:
+            # All user submissions for this contest (for the sidebar status indicators)
             user_contest_submissions = ContestSubmission.objects.filter(
                 participant=request.user,
-                contest_problem__contest=contest,
-                contest_problem__problem=current_problem
-            ).order_by('-submitted_at') # Order by most recent first
+                contest_problem__contest=contest
+            ).order_by('-submitted_at')
+            
+            # Submissions for the current problem only (for the submissions list display)
+            if current_problem:
+                current_problem_submissions = ContestSubmission.objects.filter(
+                    participant=request.user,
+                    contest_problem__contest=contest,
+                    contest_problem__problem=current_problem
+                ).order_by('-submitted_at')
 
         context = {
             'contest': contest,
             'contest_problems': contest_problems, # List of ContestProblem objects
             'current_problem': current_problem, # The actual Problem object
-            'user_contest_submissions': user_contest_submissions,
+            'user_contest_submissions': user_contest_submissions, # All submissions for sidebar
+            'current_problem_submissions': current_problem_submissions, # Current problem submissions for list
             'now': timezone.now(), # Pass current time for timer calculation in template
         }
         return render(request, 'contests/contest_problem_solve.html', context)
