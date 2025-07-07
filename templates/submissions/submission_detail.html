@@ -1,74 +1,144 @@
-<!-- templates/submissions/submission_detail.html -->
 {% extends 'base.html' %}
 
 {% block title %}Submission #{{ submission.id }} - Online Judge{% endblock %}
 
+{% block extra_css %}
+    {# CodeMirror CSS for displaying code #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <style>
+        /* General card styling is in style.css */
+        .code-display-block {
+            background-color: #282a36; /* Dracula background color */
+            color: #f8f8f2; /* Dracula foreground color */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.95rem;
+            overflow-x: auto;
+            max-height: 500px; /* Limit height of code block */
+        }
+        .error-message-block {
+            background-color: #ffe0e0; /* Light red background */
+            color: #d32f2f; /* Darker red text */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid #ff000050; /* A subtle red border */
+        }
+        .badge.bg-success { background-color: #28a745 !important; }
+        .badge.bg-danger { background-color: #dc3545 !important; }
+        .badge.bg-warning { background-color: #ffc107 !important; }
+        .badge.bg-info { background-color: #17a2b8 !important; }
+        .badge.bg-secondary { background-color: #6c757d !important; }
+    </style>
+{% endblock %}
+
 {% block content %}
     <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card p-4 shadow-sm mb-4">
-                <h2 class="card-title text-center mb-4">Submission #{{ submission.id }} Details</h2>
+        <div class="col-lg-10 col-xl-9">
+            <div class="card p-4 shadow-sm mb-4 animate__animated animate__fadeIn">
+                <h2 class="card-title text-center mb-4 fw-bold">Submission #{{ submission.id }} Details</h2>
                 <hr>
-                <div class="row mb-3">
+                <div class="row mb-4">
                     <div class="col-md-6">
-                        <p><strong>Problem:</strong> <a href="{% url 'problems:detail' submission.problem.id %}">{{ submission.problem.name }}</a></p>
-                        <p><strong>Submitted By:</strong> {{ submission.user.username }}</p>
-                        <p><strong>Submitted At:</strong> {{ submission.submitted_at|date:"M d, Y H:i:s" }}</p>
-                        <p><strong>Language:</strong> {{ submission.language|capfirst }}</p>
+                        <p class="mb-2"><strong>Problem:</strong> <a href="{% url 'problems:detail' submission.problem.id %}" class="text-primary text-decoration-none fw-medium">{{ submission.problem.name }}</a></p>
+                        <p class="mb-2"><strong>Submitted By:</strong> {{ submission.user.username }}</p>
+                        <p class="mb-2"><strong>Submitted At:</strong> {{ submission.submitted_at|date:"M d, Y H:i:s" }}</p>
+                        <p class="mb-2"><strong>Language:</strong> <span class="badge bg-info text-dark">{{ submission.language|capfirst }}</span></p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Status:</strong>
-                            <span class="badge {% if submission.status == 'finished' %}bg-success{% else %}bg-info{% endif %}">
+                        <p class="mb-2"><strong>Status:</strong>
+                            <span class="badge {% if submission.status == 'finished' %}bg-success{% else %}bg-info{% endif %} fs-6 px-3 py-2">
                                 {{ submission.status|capfirst }}
                             </span>
                         </p>
-                        <p><strong>Final Verdict:</strong>
-                            <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        <p class="mb-2"><strong>Final Verdict:</strong>
+                            <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-6 px-3 py-2">
                                 {{ submission.get_final_verdict_display }}
                             </span>
                         </p>
                         {% if submission.total_test_cases %}
-                            <p><strong>Test Cases:</strong> {{ submission.passed_test_cases|default:0 }} / {{ submission.total_test_cases }}</p>
+                            <p class="mb-2"><strong>Test Cases:</strong> <span class="fw-bold">{{ submission.passed_test_cases|default:0 }}</span> / {{ submission.total_test_cases }}</p>
                         {% endif %}
                         {% if submission.execution_time %}
-                            <p><strong>Execution Time:</strong> {{ submission.execution_time }} s</p>
+                            <p class="mb-2"><strong>Execution Time:</strong> <span class="fw-bold">{{ submission.execution_time }}</span> s</p>
                         {% endif %}
                         {% if submission.memory_used %}
-                            <p><strong>Memory Used:</strong> {{ submission.memory_used }} MB</p>
+                            <p class="mb-2"><strong>Memory Used:</strong> <span class="fw-bold">{{ submission.memory_used }}</span> MB</p>
                         {% endif %}
                     </div>
                 </div>
 
-                <h3 class="mt-4">Submitted Code:</h3>
-                <div class="bg-dark text-white p-3 rounded-md mb-4" style="overflow-x: auto;">
+                <h3 class="mt-4 fw-bold">Submitted Code:</h3>
+                <div class="code-display-block mb-4">
                     <pre><code class="language-{{ submission.language }}">{{ submission.code }}</code></pre>
                 </div>
 
                 {% if submission.error_message %}
-                    <h3 class="mt-4 text-danger">Error Details:</h3>
-                    <div class="alert alert-danger p-3 rounded-md" role="alert" style="overflow-x: auto;">
+                    <h3 class="mt-4 text-danger fw-bold">Error Details:</h3>
+                    <div class="error-message-block alert-danger mb-4" role="alert">
                         <pre><code>{{ submission.error_message }}</code></pre>
                     </div>
                 {% elif submission.final_verdict == 'wrong_answer' %}
-                    <div class="alert alert-warning" role="alert">
-                        Your code produced incorrect output for one or more test cases.
-                        (Further test case details will be available in a future enhancement).
+                    <div class="alert alert-warning text-center mt-4 shadow-sm" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i> Your code produced incorrect output for one or more test cases.
+                        (For detailed test case differences, consider enhancing the judge to store per-test case results.)
                     </div>
                 {% endif %}
 
                 <div class="text-center mt-4">
-                    <a href="{% url 'problems:detail' submission.problem.id %}" class="btn btn-secondary rounded-md">Back to Problem</a>
+                    <a href="{% url 'problems:detail' submission.problem.id %}" class="btn btn-secondary rounded-md">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Problem
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 {% endblock %}
 
-<style>
-    /* Styling for the code block (basic, consider a syntax highlighter later) */
-    pre code {
-        display: block;
-        padding: 10px;
-        color: #e8e8e8; /* Light gray text on dark background */
-    }
-</style>
+{% block extra_js %}
+    {{ block.super }}
+    {# CodeMirror for display purposes - just for syntax highlighting. No editor functionality. #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script> {# For C++ and Java #}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize CodeMirror for static code display
+            // Find all code blocks that have a language class (e.g., language-python)
+            document.querySelectorAll('pre code[class^="language-"]').forEach(function(block) {
+                let language = block.className.replace('language-', '');
+                let mode = "";
+
+                if (language === "python") {
+                    mode = "python";
+                } else if (language === "cpp") {
+                    mode = "text/x-c++src";
+                } else if (language === "java") {
+                    mode = "text/x-java";
+                }
+
+                if (mode) {
+                    CodeMirror.runMode(block.textContent, mode, block);
+                    // To actually apply styling like a CodeMirror editor, you'd convert
+                    // the pre/code to a CodeMirror instance. For just syntax highlighting,
+                    // a library like 'highlight.js' or 'prism.js' might be simpler.
+                    // For now, this just loads the modes.
+                    // If you want interactive highlighting, convert to an editor:
+                    // CodeMirror(function(elt) { block.parentNode.replaceChild(elt, block); }, {
+                    //     value: block.textContent,
+                    //     mode: mode,
+                    //     theme: "dracula",
+                    //     readOnly: true,
+                    //     lineNumbers: true,
+                    //     lineWrapping: true
+                    // });
+                }
+            });
+        });
+    </script>
+{% endblock %}

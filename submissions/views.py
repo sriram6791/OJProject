@@ -9,7 +9,16 @@ from .tasks import evaluate_submission_task # Import the Celery task
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.shortcuts import redirect, get_object_or_404
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.contrib.auth.mixins import LoginRequiredMixin
+import json
+from django.views import View
+from problems.models import Problem # Assuming Problem model
+from contests.models import Contest, ContestProblem, ContestSubmission # Import contest models
+from .tasks import evaluate_contest_submission_task, evaluate_submission_task
+from django.views.decorators.http import require_POST, require_GET
 @login_required
 def submit_code_view(request, problem_id):
     """
@@ -109,3 +118,148 @@ def submission_detail_view(request,submission_id):
     }
     
     return render(request,'submissions/submission_detail.html',context)
+
+# This view will replace your ContestSubmissionCreateAPIView for form submission
+@login_required
+@require_POST # Ensure only POST requests are accepted
+def submit_contest_code(request, contest_id, problem_id):
+    contest = get_object_or_404(Contest, id=contest_id)
+    problem = get_object_or_404(Problem, id=problem_id)
+
+    # --- Pre-submission Checks (Crucial!) ---
+    # 1. Check if user is a participant
+    if not contest.participants.filter(pk=request.user.pk).exists():
+        messages.error(request, "You must be registered for this contest to submit code.")
+        return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
+    
+    # 2. Check if contest is active (not ended or upcoming)
+    if not contest.is_active():
+        if contest.is_ended():
+            messages.error(request, "This contest has ended. Submissions are no longer accepted.")
+        else: # Upcoming or Cancelled
+            messages.error(request, "This contest is not active yet. Submissions are not allowed.")
+        return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
+
+    # 3. Ensure the problem actually belongs to this contest
+    contest_problem = get_object_or_404(ContestProblem, contest=contest, problem=problem)
+
+    code = request.POST.get('code', '')
+    language = request.POST.get('language', '')
+
+    if not code.strip():
+        messages.error(request, "Submission code cannot be empty.")
+        return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
+
+    allowed_languages = ['python', 'cpp', 'java'] # Match your judge_core/judge.py
+    if language not in allowed_languages:
+        messages.error(request, f"Unsupported language: {language}. Please choose from Python, C++, or Java.")
+        return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
+
+    try:
+        # Create a new ContestSubmission instance
+        submission = ContestSubmission.objects.create(
+            participant=request.user,
+            contest_problem=contest_problem, # Link to the ContestProblem instance
+            code=code,
+            language=language,
+            status='pending', # Initial status
+            # final_verdict, test_cases_passed, total_test_cases, execution_time, memory_used, judge_output will be set by judge
+        )
+
+        # Queue the evaluation task for contest submissions
+        # IMPORTANT: You'll need a separate Celery task for ContestSubmissions
+        # that updates ContestSubmission model, not Submission model.
+        # Let's call it evaluate_contest_submission_task for clarity.
+        evaluate_contest_submission_task.delay(submission.id)
+
+        messages.success(request, "Your contest submission has been received and is pending evaluation.")
+        
+        # Redirect back to the same problem page to see the new submission in the list
+        return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
+
+    except Exception as e:
+        messages.error(request, f"An error occurred during submission: {e}")
+        # Log the error properly in production
+        print(f"Error in submit_contest_code: {e}")
+        return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
+
+
+# Keep your ContestSubmissionStatusAPIView if you want to use it for polling
+# Just ensure it's fetching from ContestSubmission and not Submission
+class ContestSubmissionStatusAPIView(LoginRequiredMixin, View):
+    """
+    API endpoint to get the status of a specific contest submission.
+    """
+    def get(self, request, pk, *args, **kwargs):
+        # Changed 'pk' to 'submission_id' for consistency with common URL naming
+        # or just make sure your URL pattern matches 'pk'
+        submission = get_object_or_404(ContestSubmission, pk=pk) # Fetch from ContestSubmission
+        
+        # Ensure user can only check their own submissions or if they are staff/admin
+        if request.user != submission.participant and not request.user.is_staff and not request.user.is_admin:
+             return JsonResponse({'error': 'Not authorized to view this submission.'}, status=403)
+
+        data = {
+            'id': submission.id,
+            'status': submission.status,
+            'test_cases_passed': submission.test_cases_passed,
+            'total_test_cases': submission.total_test_cases,
+            'execution_time': submission.execution_time,
+            'judge_output': submission.judge_output, # If you have this field for errors/details
+            'final_verdict': submission.final_verdict if hasattr(submission, 'final_verdict') else 'pending', # Ensure this exists
+        }
+        return JsonResponse(data)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch') # For API views, though you should use CSRF tokens properly
+class ContestSubmissionCreateAPIView(LoginRequiredMixin, View):
+    """
+    Handles submission of code for a problem within a contest.
+    """
+    def post(self, request, contest_pk, problem_pk, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            code = data.get('code')
+            language = data.get('language')
+
+            contest = get_object_or_404(Contest, pk=contest_pk)
+            problem = get_object_or_404(Problem, pk=problem_pk)
+            
+            # Ensure the problem is part of the contest
+            contest_problem = get_object_or_404(ContestProblem, contest=contest, problem=problem)
+
+            # Basic validation
+            if not code or not language:
+                return JsonResponse({'error': 'Code and language are required.'}, status=400)
+
+            # Create the ContestSubmission
+            submission = ContestSubmission.objects.create(
+                participant=request.user,
+                contest_problem=contest_problem,
+                code=code,
+                language=language, # Assuming you add a language field to ContestSubmission
+                status='pending', # Initial status
+                # Other fields like score, test_cases_passed will be updated by a judge
+            )
+
+            # In a real system, you would now send this submission to a judging queue
+            # For now, we'll just return success.
+            # You might want to simulate judging here for testing purposes.
+
+            return JsonResponse({
+                'message': 'Submission received successfully!',
+                'submission_id': submission.id,
+                'status': submission.status
+            }, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+        except Contest.DoesNotExist:
+            return JsonResponse({'error': 'Contest not found.'}, status=404)
+        except Problem.DoesNotExist:
+            return JsonResponse({'error': 'Problem not found.'}, status=404)
+        except ContestProblem.DoesNotExist:
+            return JsonResponse({'error': 'Problem is not part of this contest.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

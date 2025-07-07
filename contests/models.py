@@ -1,0 +1,173 @@
+from django.db import models
+
+# Create your models here.
+from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
+
+from problems.models import Problem
+
+class Contest(models.Model):
+    name = models.CharField(max_length=255,unique=True,help_text="Name of the contest")
+    description = models.TextField(help_text="Detailed description of the contest")
+    start_time = models.DateTimeField(help_text="The official start time of the contest")
+    end_time = models.DateTimeField(help_text="The official end time of the contest")
+    
+    STATUS_CHOICES = (
+        ('upcoming','Upcoming'),
+        ('active','Active'),
+        ('ended','Ended'),
+        ('cancelled','Cancelled')
+    )
+    
+    # Status calculated based on start and end times manually
+    status = models.CharField(max_length=10,choices=STATUS_CHOICES,default="upcoming",help_text="Current status of the contest")
+    
+    # Link to the user who created this contest
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_contests',
+        help_text="User who created this contest"
+    ) 
+    
+    # Many-to-many relationship with Problem through ContestProblem
+    problems = models.ManyToManyField(
+        Problem,
+        through='ContestProblem',
+        related_name='contests',
+        help_text="Problems included in this contest"
+    )
+    
+    # ManyToMany relationship with CustomUser for participants
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='contests_participated',
+        blank=True,
+        help_text= "Users who have registered or participated in this contest"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Contest'
+        verbose_name_plural = 'Contests'
+        ordering = ['start_time']
+        
+    def __str__(self):
+        return self.name
+
+    def get_duration(self):
+        """Calculate the duration of the contest"""
+        
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
+        
+        return timedelta(0)
+    
+    def is_active(self):
+        """Checks if the contest is currently active"""
+        now = timezone.now()
+        return self.start_time <= now <= self.end_time
+    
+    def is_upcoming(self):
+        """Checks if the contest is upcoming"""
+        now = timezone.now()
+        return now <self.start_time
+    
+    def is_ended(self):
+        """Checks if the contest is ended"""
+        now = timezone.now()
+        return now > self.end_time
+    
+class ContestProblem(models.Model):
+    contest = models.ForeignKey(
+        Contest,
+        on_delete=models.CASCADE,
+        related_name='contest_problems',
+        help_text="The contest this problem belongs to"
+    )
+    problem = models.ForeignKey(
+        Problem,
+        on_delete=models.CASCADE,
+        related_name='contest_instances',
+        help_text="The problem itself"
+    )
+    points = models.IntegerField(
+        default=100,
+        help_text="Points awarded for solving this problem in this contest"
+    )
+    order_in_contest = models.IntegerField(
+        help_text="The display order of the problem within the contest"
+    )
+
+    class Meta:
+        verbose_name = "Contest Problem"
+        verbose_name_plural = "Contest Problems"
+        unique_together = ('contest', 'problem'), ('contest', 'order_in_contest')
+        ordering = ['contest', 'order_in_contest']
+
+    def __str__(self):
+        return f"{self.contest.name} - Problem {self.order_in_contest}: {self.problem.name}"
+
+class ContestSubmission(models.Model):
+    # The user who made the submission
+    participant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='contest_submissions',
+        help_text="The user who submitted the solution"
+    )
+    
+    # The specific problem within a specific contest that was submitted for
+    contest_problem = models.ForeignKey(
+        ContestProblem,
+        on_delete=models.CASCADE,
+        related_name='submissions',
+        help_text="The problem instance within a contest for which this submission was made"
+    )
+    
+    submitted_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp of the submission")
+    code = models.TextField(help_text="The submitted code")
+    
+    # Status of the submission after judging
+    SUBMISSION_STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('wrong_answer', 'Wrong Answer'),
+        ('time_limit_exceeded', 'Time Limit Exceeded'),
+        ('runtime_error', 'Runtime Error'),
+        ('compilation_error', 'Compilation Error'),
+        ('memory_limit_exceeded', 'Memory Limit Exceeded'),
+        ('judging_error', 'Judging Error'),
+    )
+    status = models.CharField(
+        max_length=25,
+        choices=SUBMISSION_STATUS_CHOICES,
+        default='pending',
+        help_text="Status of the submission after judging"
+    )
+    
+    # Score for this particular submission (e.g., full points for AC, 0 for WA)
+    score = models.IntegerField(
+        default=0,
+        help_text="Score obtained for this submission"
+    )
+    
+    # Judging details (useful for feedback)
+    test_cases_passed = models.IntegerField(default=0, help_text="Number of test cases passed")
+    total_test_cases = models.IntegerField(default=0, help_text="Total number of test cases")
+    
+    # Optional: store judge output/error messages
+    judge_output = models.TextField(blank=True, null=True, help_text="Output/error messages from the judge")
+
+    class Meta:
+        verbose_name = "Contest Submission"
+        verbose_name_plural = "Contest Submissions"
+        ordering = ['-submitted_at'] 
+
+    def __str__(self):
+        return f"Submission by {self.participant.username} for {self.contest_problem.problem.name} in {self.contest_problem.contest.name} ({self.status})"

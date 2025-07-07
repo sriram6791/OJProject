@@ -1,0 +1,562 @@
+{% extends 'base.html' %}
+{% load django_template_filters %}
+{% block title %}{{ contest.name }} - Solve Problem - CodeArena{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for contest page layout */
+    .contest-header {
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 2.5rem 3rem; /* Increased padding */
+        border-radius: 1rem;
+        margin-bottom: 2rem; /* Increased margin */
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        display: flex; /* Ensure flex for alignment */
+        align-items: center; /* Vertically align content */
+        justify-content: space-between; /* Space out title and timer */
+    }
+    .contest-header h1, .contest-header p {
+        color: white !important;
+    }
+    .timer-badge {
+        font-size: 1.5rem; /* Slightly larger */
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        background-color: rgba(255,255,255,0.2);
+        color: white;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+    .contest-problem-list .list-group-item {
+        border-left: 4px solid transparent;
+        transition: all 0.2s ease;
+    }
+    .contest-problem-list .list-group-item.active {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+        border-color: var(--primary-dark) !important;
+        font-weight: bold;
+    }
+    .contest-problem-list .list-group-item.active .text-muted {
+        color: rgba(255,255,255,0.8) !important;
+    }
+    .contest-problem-list .list-group-item:hover {
+        background-color: var(--gray-100);
+        border-left-color: var(--primary-color);
+    }
+    .contest-problem-list .list-group-item.active:hover {
+        background-color: var(--primary-dark) !important;
+    }
+    /* Problem statement text styling */
+    .problem-statement-text {
+        color: var(--gray-800); /* Darker text color */
+        line-height: 1.6;
+        font-size: 16px;
+        font-weight: 400; /* Normal weight */
+    }
+    /* Submissions list height - consider if you need a max-height here */
+    .submissions-card-body {
+        /* Removed fixed max-height and overflow-y to allow natural expansion */
+    }
+    .container-fluid {
+        padding-top: 2rem; /* Add top padding to the whole container */
+        padding-bottom: 3rem; /* Add more bottom padding */
+    }
+
+    /* Adjust problem statement and submission card header padding if needed, but current looks good */
+    .card-header {
+        padding-top: 1.5rem !important; /* Ensure consistent header padding */
+        padding-bottom: 1.5rem !important;
+    }
+
+    #codeEditor {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        min-height: 300px !important;
+        width: 100% !important;
+        border: 1px solid #ced4da !important;
+        border-radius: 8px !important;
+        padding: 12px !important;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+        background-color: #fff !important;
+        color: #212529 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-lg-5 pb-5">
+    <div class="contest-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-1">{{ contest.name }}</h1>
+            {# Added mb-0 to description paragraph for consistent spacing and ensure padding beneath #}
+            <p class="mb-0">{{ contest.description|truncatewords:15 }}</p>
+        </div>
+        <div class="text-end">
+            <span class="timer-badge" id="contestTimer">Loading Timer...</span>
+            <div class="mt-2">
+                <a href="{% url 'contests:detail' contest.id %}" class="btn btn-light btn-sm me-2">
+                    <i class="fas fa-info-circle me-1"></i> Details
+                </a>
+                <a href="{% url 'contests:contest_leaderboard' contest.id %}" class="btn btn-light btn-sm">
+                    <i class="fas fa-trophy me-1"></i> Leaderboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-list-ol me-2 text-primary"></i>Contest Problems
+                    </h4>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush contest-problem-list">
+                        {% if contest_problems %}
+                            {% for cp in contest_problems %}
+                                <a href="{% url 'contests:solve_contest_problem' contest.id cp.problem.id %}"
+                                   class="list-group-item list-group-item-action
+                                   {% if current_problem and cp.problem.id == current_problem.id %}active{% endif %}
+                                   d-flex justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ forloop.counter }}. {{ cp.problem.name }}</h6>
+                                        <small class="text-muted">
+                                            {{ cp.points }} Points
+                                            {% if cp.problem.difficulty %}
+                                                <span class="badge {% if cp.problem.difficulty == 'easy' %}bg-success{% elif cp.problem.difficulty == 'medium' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-2">{{ cp.problem.difficulty|title }}</span>
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {# Display status for this problem in this contest for the current user #}
+                                    {% if user.is_authenticated %}
+                                        {% with user_submission_for_problem=user_contest_submissions|first_submission_for_problem:cp.problem %}
+                                            {% if user_submission_for_problem %}
+                                                <span class="ms-2">
+                                                    {# Initial rendering of icon based on actual final_verdict (or status if verdict not yet set) #}
+                                                    {% if user_submission_for_problem.final_verdict == 'accepted' %}
+                                                        <i class="fas fa-check-circle text-success" title="Accepted"></i>
+                                                    {% elif user_submission_for_problem.final_verdict == 'wrong_answer' or user_submission_for_problem.final_verdict == 'runtime_error' or user_submission_for_problem.final_verdict == 'compilation_error' or user_submission_for_problem.final_verdict == 'judging_error' or user_submission_for_problem.final_verdict == 'time_limit_exceeded' or user_submission_for_problem.final_verdict == 'memory_limit_exceeded' %}
+                                                        <i class="fas fa-times-circle text-danger" title="{{ user_submission_for_problem.get_final_verdict_display }}"></i>
+                                                    {% else %} {# For 'pending', 'processing', or initial state #}
+                                                        <i class="fas fa-hourglass-half text-warning" title="Pending / Processing"></i>
+                                                    {% endif %}
+                                                </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-3 text-center text-muted">No problems in this contest yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            {% if current_problem %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
+                    <h2 class="mb-0 fw-bold text-dark">{{ current_problem.name }}</h2>
+                    {% if current_problem.difficulty == 'easy' %}
+                        <span class="badge bg-success px-3 py-2 fs-6">
+                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Easy
+                        </span>
+                    {% elif current_problem.difficulty == 'medium' %}
+                        <span class="badge bg-warning text-dark px-3 py-2 fs-6">
+                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Medium
+                        </span>
+                    {% elif current_problem.difficulty == 'hard' %}
+                        <span class="badge bg-danger px-3 py-2 fs-6">
+                            <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Hard
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body p-4">
+                    <div class="problem-content mb-4">
+                        <div class="problem-statement-text"> {# Using custom class for styling #}
+                            {{ current_problem.statement|safe }}
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="bg-light rounded-3 p-3 border">
+                                <h6 class="fw-bold text-success mb-3">
+                                    <i class="fas fa-arrow-right me-2"></i>Sample Input
+                                </h6>
+                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 13px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in current_problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.input_data }}{% endif %}{% empty %}No sample input available.{% endfor %}</code></pre>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light rounded-3 p-3 border">
+                                <h6 class="fw-bold text-primary mb-3">
+                                    <i class="fas fa-arrow-left me-2"></i>Sample Output
+                                </h6>
+                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 13px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in current_problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.expected_output }}{% endif %}{% empty %}No sample output available.{% endfor %}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-code me-2 text-primary"></i>Submit Your Solution
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    {% if user.is_authenticated %}
+                        {# CORRECTED ACTION URL HERE #}
+                        <form id="submissionForm" method="post" action="{% url 'submissions:submit_contest_code' contest.id current_problem.id %}">
+                            {% csrf_token %}
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="languageSelect" class="form-label fw-semibold">Language</label>
+                                    <select class="form-select" id="languageSelect" name="language" required>
+                                        <option value="python">Python</option>
+                                        <option value="cpp">C++</option>
+                                        <option value="java">Java</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="fas fa-paper-plane me-2"></i>Submit Code
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                    <label for="codeEditor" class="form-label fw-semibold">Your Code</label>
+                                    {# The textarea is hidden by CodeMirror, the .CodeMirror class styles the editor #}
+                                    <textarea class="form-control border" id="codeEditor" name="code" rows="16" 
+                                        placeholder="Write your solution here..." required
+                                        style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 14px; line-height: 1.5;"></textarea>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning border-0" role="alert">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle me-3 fa-2x text-warning"></i>
+                                <div>
+                                    <h6 class="mb-1">Authentication Required</h6>
+                                    <p class="mb-0">Please <a href="{% url 'users:login' %}" class="fw-bold text-decoration-none">log in</a> to submit a solution.</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# START OF THE UPDATED SUBMISSIONS SECTION #}
+            <div class="col-lg-12"> {# This should be inside the overall row g-4, so it needs to be adjusted based on your layout. For this file, I'm assuming it's part of the main problem display column. #}
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h4 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-history me-2 text-success"></i>Your Recent Submissions for This Problem
+                        </h4>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 900px; overflow-y: auto;">
+                        <div id="contestUserSubmissionsList">
+                            {% if current_problem_submissions %} {# Assuming current_problem_submissions is passed from context #}
+                                <div class="list-group list-group-flush">
+                                    {% for submission in current_problem_submissions %}
+                                        <a href="{% url 'submissions:detail' submission.id %}"
+                                           class="list-group-item list-group-item-action border-0 px-4 py-3"
+                                           id="contest-submission-{{ submission.id }}" {# Unique ID for JS targeting #}
+                                           data-submission-id="{{ submission.id }}" {# Data attribute for submission ID #}
+                                           data-submission-status="{{ submission.status }}" {# Data attribute for current status #}
+                                           data-submission-verdict="{{ submission.final_verdict|default:'pending' }}"> {# Data attribute for final verdict #}
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        {# Initial icon based on initial state from DB. JS will update this. #}
+                                                        {% if submission.final_verdict == 'accepted' %}
+                                                            <i class="fas fa-check-circle text-success me-2 submission-icon"></i>
+                                                        {% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}
+                                                            <i class="fas fa-times-circle text-danger me-2 submission-icon"></i>
+                                                        {% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}
+                                                            <i class="fas fa-clock text-warning me-2 submission-icon"></i>
+                                                        {% else %} {# Default for 'pending', 'processing', or missing final_verdict #}
+                                                            <i class="fas fa-circle-notch text-secondary me-2 fa-spin submission-icon"></i>
+                                                        {% endif %}
+                                                        <strong class="text-dark">{{ submission.submitted_at|date:"M d, H:i" }}</strong>
+                                                    </div>
+                                                    <div class="d-flex gap-2 mb-2">
+                                                        <span class="badge bg-info text-dark">{{ submission.language|capfirst }}</span>
+                                                        {# Initial badge based on initial state from DB. JS will update this. #}
+                                                        <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} submission-verdict-badge">
+                                                            {{ submission.get_final_verdict_display|default:"Pending" }}
+                                                        </span>
+                                                    </div>
+                                                    {% if submission.total_test_cases or submission.execution_time %}
+                                                        <small class="text-muted d-block submission-metrics"> {# Renamed to submission-metrics for a broader container #}
+                                                            {% if submission.total_test_cases %}
+                                                                <i class="fas fa-vials me-1"></i><span class="tests-passed">{{ submission.test_cases_passed|default:0 }}</span>/<span class="tests-total">{{ submission.total_test_cases }}</span> tests
+                                                            {% endif %}
+                                                            {% if submission.execution_time %}
+                                                                <span class="ms-2"></span><i class="fas fa-clock me-1"></i><span class="execution-time">{{ submission.execution_time|floatformat:"3"|default:"0.000" }}</span>s
+                                                            {% endif %}
+                                                        </small>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-end">
+                                                    <i class="fas fa-chevron-right text-muted"></i>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-code fa-3x text-muted mb-3 d-block"></i>
+                                    <h5 class="text-muted mb-3">No submissions for this problem yet</h5>
+                                    <p class="text-muted px-3">Submit your code to see its status here!</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# END OF THE UPDATED SUBMISSIONS SECTION #}
+
+            {% else %}
+                {# This message implies current_problem is not being passed by your view #}
+                <div class="alert alert-info text-center mt-4">
+                    <i class="fas fa-exclamation-circle me-2"></i> Select a problem from the left sidebar to start solving!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script id="contest-problem-data" type="application/json">
+{
+    "contestId": {% if contest.id %}{{ contest.id }}{% else %}0{% endif %},
+    "problemId": {% if current_problem.id %}{{ current_problem.id }}{% else %}0{% endif %}
+}
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const contestProblemData = JSON.parse(document.getElementById('contest-problem-data').textContent);
+        const contestId = contestProblemData.contestId;
+        const problemId = contestProblemData.problemId; // This is current_problem.id
+
+        const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
+
+        // --- Contest Timer Logic (Remains the same) ---
+        const contestTimerElement = document.getElementById('contestTimer');
+        // Ensure contest.end_time is always passed as an ISO 8601 string for reliable parsing
+        const contestEndTime = new Date("{{ contest.end_time|date:'c' }}");
+
+        function updateTimer() {
+            const now = new Date();
+            const timeLeft = contestEndTime - now;
+
+            if (timeLeft <= 0) {
+                contestTimerElement.textContent = "Contest Ended!";
+                contestTimerElement.classList.remove('bg-info', 'bg-warning'); // Remove old classes
+                contestTimerElement.classList.add('bg-danger');
+                clearInterval(timerInterval); // Stop the timer
+                return;
+            }
+
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            let timerText = "";
+            if (days > 0) timerText += `${days}d `;
+            timerText += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            contestTimerElement.textContent = timerText;
+
+            // Update badge color based on time left
+            if (timeLeft < 5 * 60 * 1000) { // Less than 5 minutes
+                contestTimerElement.classList.remove('bg-info', 'bg-warning');
+                contestTimerElement.classList.add('bg-danger');
+            } else if (timeLeft < 30 * 60 * 1000) { // Less than 30 minutes
+                contestTimerElement.classList.remove('bg-info', 'bg-danger');
+                contestTimerElement.classList.add('bg-warning');
+            } else { // More than 30 minutes
+                contestTimerElement.classList.remove('bg-danger', 'bg-warning');
+                contestTimerElement.classList.add('bg-info');
+            }
+        }
+
+        updateTimer();
+        const timerInterval = setInterval(updateTimer, 1000);
+
+        // --- Submission Status Polling (Updated to handle new structure) ---
+        const pollingInterval = 3000; // Poll every 3 seconds (adjust as needed)
+        let activePolls = {}; // To keep track of polling intervals for each submission
+
+        function capitalizeFirstLetter(string) { // Renamed for broader use, matches previous advice
+            return string.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        function updateSubmissionStatusDisplay(submissionElement, data) {
+            const currentStatus = data.status;
+            const finalVerdict = data.final_verdict || 'pending'; // Ensure a default
+
+            // Update the data attributes on the element
+            submissionElement.dataset.submissionStatus = currentStatus;
+            submissionElement.dataset.submissionVerdict = finalVerdict;
+
+            // Update icon
+            const iconElement = submissionElement.querySelector('.submission-icon');
+            if (iconElement) {
+                iconElement.classList.remove('fa-check-circle', 'fa-times-circle', 'fa-clock', 'fa-circle-notch', 'text-success', 'text-danger', 'text-warning', 'text-secondary', 'fa-spin'); // Remove fa-spin for finished states
+                if (finalVerdict === 'accepted') {
+                    iconElement.classList.add('fas', 'fa-check-circle', 'text-success');
+                } else if (['wrong_answer', 'runtime_error', 'compilation_error', 'judging_error'].includes(finalVerdict)) {
+                    iconElement.classList.add('fas', 'fa-times-circle', 'text-danger');
+                } else if (['time_limit_exceeded', 'memory_limit_exceeded'].includes(finalVerdict)) {
+                    iconElement.classList.add('fas', 'fa-clock', 'text-warning');
+                } else { // pending, processing, etc.
+                    iconElement.classList.add('fas', 'fa-circle-notch', 'text-secondary', 'fa-spin'); // Add fa-spin for pending/processing
+                }
+            }
+
+            // Update badge text and color
+            const badgeElement = submissionElement.querySelector('.submission-verdict-badge');
+            if (badgeElement) {
+                badgeElement.textContent = capitalizeFirstLetter(finalVerdict); // Use formatVerdictText for proper casing
+                badgeElement.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'text-dark', 'bg-secondary');
+                if (finalVerdict === 'accepted') {
+                    badgeElement.classList.add('bg-success');
+                } else if (['wrong_answer', 'runtime_error', 'compilation_error', 'judging_error'].includes(finalVerdict)) {
+                    badgeElement.classList.add('bg-danger');
+                } else if (['time_limit_exceeded', 'memory_limit_exceeded'].includes(finalVerdict)) {
+                    badgeElement.classList.add('bg-warning', 'text-dark');
+                } else {
+                    badgeElement.classList.add('bg-secondary');
+                }
+            }
+
+            // Update test cases and execution time
+            const testsPassedElement = submissionElement.querySelector('.tests-passed');
+            const testsTotalElement = submissionElement.querySelector('.tests-total');
+            const executionTimeElement = submissionElement.querySelector('.execution-time');
+
+            if (testsPassedElement) testsPassedElement.textContent = data.test_cases_passed || '0';
+            if (testsTotalElement) testsTotalElement.textContent = data.total_test_cases || '0';
+            if (executionTimeElement) executionTimeElement.textContent = data.execution_time ? data.execution_time.toFixed(3) : '0.000'; // Format time
+
+            // If status is 'finished', stop polling for this submission
+            if (currentStatus === 'finished' && activePolls[submissionElement.dataset.submissionId]) {
+                clearInterval(activePolls[submissionElement.dataset.submissionId]);
+                delete activePolls[submissionElement.dataset.submissionId];
+                if (iconElement && iconElement.classList.contains('fa-spin')) {
+                    iconElement.classList.remove('fa-spin'); // Stop spin animation
+                }
+                console.log(`Polling stopped for submission ${submissionElement.dataset.submissionId}`);
+            }
+        }
+
+        function pollSubmissionStatus(submissionId, submissionElement) {
+            if (!csrfToken) {
+                console.error('CSRF token not found for polling.');
+                return;
+            }
+
+            fetch(`/submissions/api/contest_status/${submissionId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                updateSubmissionStatusDisplay(submissionElement, data);
+            })
+            .catch(error => {
+                console.error(`Error fetching status for submission ${submissionId}:`, error);
+                // On error, stop polling and show an error state
+                if (activePolls[submissionId]) {
+                    clearInterval(activePolls[submissionId]);
+                    delete activePolls[submissionId];
+                }
+                const iconElement = submissionElement.querySelector('.submission-icon');
+                if (iconElement) iconElement.classList.remove('fa-spin');
+                const badgeElement = submissionElement.querySelector('.submission-verdict-badge');
+                if (badgeElement) {
+                     badgeElement.textContent = 'Error Fetching';
+                     badgeElement.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'text-dark', 'bg-secondary');
+                     badgeElement.classList.add('bg-danger');
+                }
+            });
+        }
+
+        function startPollingForSubmission(submissionElement) {
+            const submissionId = submissionElement.dataset.submissionId;
+            const currentStatus = submissionElement.dataset.submissionStatus;
+            const currentVerdict = submissionElement.dataset.submissionVerdict;
+
+            // Only poll if not already finished AND not already being polled
+            // The condition `currentVerdict === 'pending'` is crucial here for initial state.
+            // If the verdict is already something final, we don't need to poll.
+            if (currentStatus !== 'finished' && currentVerdict === 'pending' && !activePolls[submissionId]) {
+                console.log(`Starting polling for submission ${submissionId}`);
+                // Immediately update once, then set interval
+                pollSubmissionStatus(submissionId, submissionElement);
+                activePolls[submissionId] = setInterval(() => {
+                    pollSubmissionStatus(submissionId, submissionElement);
+                }, pollingInterval);
+            } else {
+                 // If already finished or has a final verdict on page load, ensure correct display
+                 // This fetches one last time to ensure all data is up-to-date in case judge finished just before page load
+                 if (submissionId) { // Ensure submissionId exists
+                    pollSubmissionStatus(submissionId, submissionElement);
+                 }
+            }
+        }
+
+        // Start polling for all submissions that are not yet 'finished' on page load
+        // This targets elements with `data-submission-id` attribute
+        document.querySelectorAll('[data-submission-id]').forEach(submissionElement => {
+            startPollingForSubmission(submissionElement);
+        });
+
+        // Handle form submission (remains the same)
+        const submissionForm = document.getElementById('submissionForm');
+        if (submissionForm) {
+            submissionForm.addEventListener('submit', function(e) {
+                const submitButton = submissionForm.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+                    // The form will naturally reload the page, so the spinner will be brief.
+                    // If you wanted AJAX submission, this would need more complex handling.
+                }
+            });
+        }
+    });
+</script>
+
+{# Custom template filter for getting first submission for a problem #}
+{# This should probably be at the top with other load tags if used #}
+{% comment %} {% load django_template_filters %} {% endcomment %}
+{% endblock %}

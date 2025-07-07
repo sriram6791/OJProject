@@ -1,23 +1,22 @@
-<!-- templates/problems/problem_detail.html -->
 {% extends 'base.html' %}
 
 {% block title %}{{ problem.name }} - Online Judge{% endblock %}
 
 {% block extra_css %}
-<!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.css">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+{# Revert to container-fluid and add explicit horizontal padding (px-4 or px-5) and top margin (mt-4) #}
+<div class="container-fluid mt-4 px-lg-5 pb-5"> {# px-lg-5 applies padding at large breakpoints and above #}
     <div class="row g-4">
         <div class="col-lg-8">
-            <!-- Problem Statement Card -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
-                    <h2 class="mb-0 fw-bold text-dark">{{ problem.name }}</h2>
+                    {# Please confirm if your problem model uses 'name' or 'title' for problem name #}
+                    <h2 class="mb-0 fw-bold text-dark">{{ problem.title|default:problem.name }}</h2> 
                     {% if problem.difficulty == 'easy' %}
                         <span class="badge bg-success px-3 py-2 fs-6">
                             <i class="fas fa-circle me-2" style="font-size: 8px;"></i>Easy
@@ -35,19 +34,19 @@
                 
                 <div class="card-body p-4">
                     <div class="problem-content mb-4">
-                        <div class="text-muted lh-lg" style="font-size: 15px;">
-                            {{ problem.statement|safe }}
+                        {# Please confirm if your problem model uses 'statement' or 'description' for problem content #}
+                        <div class="text-dark lh-base fw-normal" style="font-size: 20px;">
+                            {{ problem.description|default:problem.statement|safe }}
                         </div>
                     </div>
 
-                    <!-- Sample Input/Output in a compact row -->
                     <div class="row g-3">
                         <div class="col-md-6">
                             <div class="bg-light rounded-3 p-3 border">
                                 <h6 class="fw-bold text-success mb-3">
                                     <i class="fas fa-arrow-right me-2"></i>Sample Input
                                 </h6>
-                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 13px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.input_data }}{% endif %}{% empty %}No sample input available.{% endfor %}</code></pre>
+                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 18px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.input_data }}{% endif %}{% empty %}No sample input available.{% endfor %}</code></pre>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -55,14 +54,13 @@
                                 <h6 class="fw-bold text-primary mb-3">
                                     <i class="fas fa-arrow-left me-2"></i>Sample Output
                                 </h6>
-                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 13px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.expected_output }}{% endif %}{% empty %}No sample output available.{% endfor %}</code></pre>
+                                <pre class="bg-white p-3 rounded border-0 text-dark mb-0" style="font-size: 18px; font-family: 'JetBrains Mono', monospace;"><code>{% for tc in problem.test_cases.all %}{% if not tc.is_hidden %}{{ tc.expected_output }}{% endif %}{% empty %}No sample output available.{% endfor %}</code></pre>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Code Submission Card -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white border-0 py-3">
                     <h4 class="mb-0 fw-bold text-dark">
@@ -110,7 +108,6 @@
             </div>
         </div>
 
-        <!-- Right Sidebar: Submissions -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white border-0 py-3">
@@ -118,7 +115,7 @@
                         <i class="fas fa-history me-2 text-success"></i>Your Submissions
                     </h4>
                 </div>
-                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                <div class="card-body p-0" style="max-height: 900px; overflow-y: auto;">
                     <div id="userSubmissionsList">
                         {% if user_submissions %}
                             <div class="list-group list-group-flush">
@@ -254,15 +251,15 @@
                             let metricsHtml = '';
                             // Ensure default to 0 if null for passed_test_cases
                             if (data.total_test_cases) {
-                                metricsHtml += (data.passed_test_cases || 0) + '/' + data.total_test_cases;
+                                metricsHtml += `<i class="fas fa-vials me-1"></i>${data.passed_test_cases || 0}/${data.total_test_cases} tests`;
                             }
                             if (data.execution_time) {
-                                metricsHtml += ' | ' + data.execution_time + 's';
+                                metricsHtml += `${metricsHtml ? '<span class="ms-2"></span>' : ''}<i class="fas fa-clock me-1"></i>${data.execution_time}s`;
                             }
                             smallElement.innerHTML = metricsHtml;
                         }
 
-                        if (data.status === 'finished') {
+                        if (data.status === 'finished' || data.status === 'failed') { // Added 'failed' to stop polling
                             console.log('Submission ' + submissionId + ' finished with verdict: ' + data.final_verdict);
                         } else {
                             // Continue polling if not finished
@@ -433,5 +430,6 @@ pre::-webkit-scrollbar-thumb:hover {
     color: #6c757d;
     font-style: italic;
 }
+
 </style>
 {% endblock %}
