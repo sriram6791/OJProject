@@ -1,0 +1,141 @@
+{# submissions/contest_submission_detail.html #}
+{% extends 'base.html' %}
+
+{% block title %}Contest Submission #{{ submission.id }} - CodeArena{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Add any specific styles for submission detail page here */
+    .submission-detail-header {
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 2rem;
+        border-radius: 0.75rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .submission-detail-header h1 {
+        color: white !important;
+        font-weight: 700;
+    }
+    .submission-detail-header p {
+        color: rgba(255,255,255,0.9) !important;
+    }
+    .card {
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .card-header {
+        background-color: var(--bg-light);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    pre {
+        background-color: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 0.9em;
+        overflow-x: auto;
+    }
+    .verdict-badge {
+        font-size: 1.1em;
+        padding: 0.5em 0.8em;
+        border-radius: 0.5rem;
+        font-weight: bold;
+    }
+    .bg-accepted { background-color: var(--success-color); color: white; }
+    .bg-wrong_answer, .bg-runtime_error, .bg-compilation_error, .bg-judging_error { background-color: var(--danger-color); color: white; }
+    .bg-time_limit_exceeded, .bg-memory_limit_exceeded { background-color: var(--warning-color); color: var(--text-dark); }
+    .bg-pending, .bg-processing { background-color: var(--info-color); color: white; } /* Use info for pending/processing */
+
+    /* Ensure these CSS variables are defined in your base.html or global CSS */
+    :root {
+        --primary-color: #6366f1;
+        --secondary-color: #8b5cf6;
+        --text-dark: #343a40;
+        --text-muted: #6c757d;
+        --bg-light: #f8f9fa;
+        --border-color: #e9ecef;
+        --success-color: #10b981;
+        --danger-color: #ef4444; /* Red for errors */
+        --warning-color: #f59e0b; /* Orange for warnings */
+        --info-color: #0ea5e9; /* Blue for info */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="submission-detail-header text-center mb-4">
+        <h1 class="mb-2">Contest Submission #{{ submission.id }}</h1>
+        <p class="lead">
+            Details for your submission to <a href="{% url 'contests:solve_contest_problem' contest.id problem.id %}" class="text-white text-decoration-none fw-bold">{{ problem.name }}</a> in <a href="{% url 'contests:detail' contest.id %}" class="text-white text-decoration-none fw-bold">{{ contest.name }}</a>
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card mb-4">
+                <div class="card-header">Submission Summary</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <strong>Submitted By:</strong> {{ submission.participant.username }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Submitted At:</strong> {{ submission.submitted_at|date:"F d, Y H:i:s" }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Language:</strong> <span class="badge bg-info">{{ submission.language|capfirst }}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Verdict:</strong>
+                            <span class="verdict-badge bg-{{ submission.final_verdict|default:'pending' }}">{{ submission.get_final_verdict_display|default:"Pending" }}</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Test Cases:</strong> {{ submission.test_cases_passed|default:0 }} / {{ submission.total_test_cases|default:0 }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Execution Time:</strong> {{ submission.execution_time|floatformat:"3"|default:"N/A" }} s
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <strong>Memory Used:</strong> {{ submission.memory_used|floatformat:"2"|default:"N/A" }} MB
+                        </div>
+                        <div class="col-md-12">
+                            <strong>Score:</strong> <span class="badge bg-primary">{{ submission.score }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">Submitted Code</div>
+                <div class="card-body">
+                    <pre><code class="language-{{ submission.language }}">{{ submission.code }}</code></pre>
+                </div>
+            </div>
+
+            {% if submission.judge_output %}
+            <div class="card mb-4">
+                <div class="card-header">Judge Output / Error Message</div>
+                <div class="card-body">
+                    <pre>{{ submission.judge_output }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="text-center mt-4">
+                <a href="{% url 'contests:solve_contest_problem' contest.id problem.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Problem
+                </a>
+                <a href="{% url 'contests:contest_leaderboard' contest.id %}" class="btn btn-outline-info ms-2">
+                    <i class="fas fa-trophy me-2"></i>View Contest Leaderboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
