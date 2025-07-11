@@ -388,17 +388,20 @@ def evaluate_contest_solution(contest_submission_id):
         problem = contest_problem.problem
         test_cases = problem.test_cases.all().order_by('order')
 
+        # Calculate total count first
+        total_count = test_cases.count()
+
         # Initialize submission state properly
         contest_submission.status = 'processing'  # Only use: pending, processing, finished
-        contest_submission.final_verdict = 'pending'  # This will become: accepted, wrong_answer, etc.
+        contest_submission.final_verdict = 'pending'  # Explicitly set to pending initially
         contest_submission.execution_time = 0.0
         contest_submission.memory_used = 0.0
         contest_submission.test_cases_passed = 0
+        contest_submission.total_test_cases = total_count
         contest_submission.score = 0
-        contest_submission.save()
+        contest_submission.save(force_update=True)  # Force update to ensure all fields are saved
 
         passed_count = 0
-        total_count = test_cases.count()
 
         # Define limits
         TIME_LIMIT_SECONDS = getattr(problem, 'time_limit', 5)
@@ -481,25 +484,29 @@ def evaluate_contest_solution(contest_submission_id):
             contest_submission.execution_time = max(contest_submission.execution_time or 0.0, execution_time_tc)
             contest_submission.memory_used = max(contest_submission.memory_used or 0.0, memory_used_tc)
 
-        # Final updates
-        contest_submission.status = 'finished'  # Status is always 'finished' at this point
+        # Final updates after all test cases
+        contest_submission.status = 'finished'  # Always finished at this point
         contest_submission.test_cases_passed = passed_count
         contest_submission.total_test_cases = total_count
         contest_submission.judge_output = last_error_message
 
-        # Set final verdict and score
+        # Set final verdict and score based on test results
         if passed_count == total_count:
-            # All test cases passed, explicitly set to accepted
+            # All test cases passed, force verdict to accepted
             contest_submission.final_verdict = 'accepted'
             contest_submission.score = contest_problem.points
         else:
-            # Not all test cases passed, use the accumulated verdict
+            # Not all test cases passed, use accumulated verdict
             contest_submission.final_verdict = final_verdict
             contest_submission.score = 0
 
-        # Save all changes - status must be one of: pending, processing, finished
-        contest_submission.save()
-        print(f"Contest Submission {contest_submission.id} evaluation complete: status={contest_submission.status}, verdict={final_verdict}")
+        # Save everything at once with force_update
+        contest_submission.save(force_update=True)
+        
+        print(f"Contest Submission {contest_submission.id} evaluation complete: "
+              f"status={contest_submission.status}, "
+              f"verdict={contest_submission.final_verdict}, "
+              f"passed={passed_count}/{total_count}")
 
     except Exception as e:
         from contests.models import ContestSubmission
