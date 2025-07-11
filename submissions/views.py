@@ -163,6 +163,7 @@ def submit_contest_code(request, contest_id, problem_id):
             code=code,
             language=language,
             status='pending', # Initial status
+            # final_verdict='pending',
             # final_verdict, test_cases_passed, total_test_cases, execution_time, memory_used, judge_output will be set by judge
         )
 
@@ -199,7 +200,7 @@ class ContestSubmissionStatusAPIView(LoginRequiredMixin, View):
         data = {
             'id': submission.id,
             'status': submission.status, # This will be 'pending', 'processing', or 'finished'
-            'final_verdict': submission.final_verdict, # This will be 'pending_evaluation', 'accepted', 'wrong_answer', etc.
+            'final_verdict': submission.final_verdict, # This will be 'pending', 'accepted', 'wrong_answer', etc.
             'test_cases_passed': submission.test_cases_passed,
             'total_test_cases': submission.total_test_cases,
             'execution_time': submission.execution_time,

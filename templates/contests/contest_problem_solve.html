@@ -272,7 +272,7 @@
                             {% if current_problem_submissions %} {# Assuming current_problem_submissions is passed from context #}
                                 <div class="list-group list-group-flush">
                                     {% for submission in current_problem_submissions %}
-                                        <a href="{% url 'submissions:detail' submission.id %}"
+                                        <a href="{% url 'submissions:contest_detail' submission.id %}"
                                            class="list-group-item list-group-item-action border-0 px-4 py-3"
                                            id="contest-submission-{{ submission.id }}" {# Unique ID for JS targeting #}
                                            data-submission-id="{{ submission.id }}" {# Data attribute for submission ID #}

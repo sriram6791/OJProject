@@ -1,70 +1,70 @@
-{# submissions/contest_submission_detail.html #}
 {% extends 'base.html' %}
 
 {% block title %}Contest Submission #{{ submission.id }} - CodeArena{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Add any specific styles for submission detail page here */
-    .submission-detail-header {
-        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-        color: white;
-        padding: 2rem;
-        border-radius: 0.75rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .submission-detail-header h1 {
-        color: white !important;
-        font-weight: 700;
-    }
-    .submission-detail-header p {
-        color: rgba(255,255,255,0.9) !important;
-    }
-    .card {
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    }
-    .card-header {
-        background-color: var(--bg-light);
-        border-bottom: 1px solid var(--border-color);
-        font-weight: 600;
-        color: var(--text-dark);
-    }
-    pre {
-        background-color: var(--bg-light);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        padding: 1rem;
-        font-family: 'JetBrains Mono', 'Fira Code', monospace;
-        font-size: 0.9em;
-        overflow-x: auto;
-    }
-    .verdict-badge {
-        font-size: 1.1em;
-        padding: 0.5em 0.8em;
-        border-radius: 0.5rem;
-        font-weight: bold;
-    }
-    .bg-accepted { background-color: var(--success-color); color: white; }
-    .bg-wrong_answer, .bg-runtime_error, .bg-compilation_error, .bg-judging_error { background-color: var(--danger-color); color: white; }
-    .bg-time_limit_exceeded, .bg-memory_limit_exceeded { background-color: var(--warning-color); color: var(--text-dark); }
-    .bg-pending, .bg-processing { background-color: var(--info-color); color: white; } /* Use info for pending/processing */
+    {# CodeMirror CSS for displaying code #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <style>
+        /* General card styling is in style.css */
+        .code-display-block {
+            background-color: #282a36; /* Dracula background color */
+            color: #f8f8f2; /* Dracula foreground color */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.95rem;
+            overflow-x: auto;
+            max-height: 500px; /* Limit height of code block */
+        }
+        .error-message-block {
+            background-color: #ffe0e0; /* Light red background */
+            color: #d32f2f; /* Darker red text */
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid #ff000050; /* A subtle red border */
+        }
+        /* Custom badge colors to match your theme */
+        .badge.bg-success { background-color: #28a745 !important; }
+        .badge.bg-danger { background-color: #dc3545 !important; }
+        .badge.bg-warning { background-color: #ffc107 !important; }
+        .badge.bg-info { background-color: #17a2b8 !important; }
+        .badge.bg-secondary { background-color: #6c757d !important; }
 
-    /* Ensure these CSS variables are defined in your base.html or global CSS */
-    :root {
-        --primary-color: #6366f1;
-        --secondary-color: #8b5cf6;
-        --text-dark: #343a40;
-        --text-muted: #6c757d;
-        --bg-light: #f8f9fa;
-        --border-color: #e9ecef;
-        --success-color: #10b981;
-        --danger-color: #ef4444; /* Red for errors */
-        --warning-color: #f59e0b; /* Orange for warnings */
-        --info-color: #0ea5e9; /* Blue for info */
-    }
-</style>
+        /* Styles for the header gradient, similar to contest_problem_solve.html */
+        .submission-detail-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .submission-detail-header h1 {
+            color: white !important;
+            font-weight: 700;
+        }
+        .submission-detail-header p {
+            color: rgba(255,255,255,0.9) !important;
+        }
+        /* Ensure these CSS variables are defined in your base.html or global CSS */
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --text-dark: #343a40;
+            --text-muted: #6c757d;
+            --bg-light: #f8f9fa;
+            --border-color: #e9ecef;
+            --success-color: #10b981;
+            --danger-color: #ef4444; /* Red for errors */
+            --warning-color: #f59e0b; /* Orange for warnings */
+            --info-color: #0ea5e9; /* Blue for info */
+        }
+    </style>
 {% endblock %}
 
 {% block content %}
@@ -72,70 +72,121 @@
     <div class="submission-detail-header text-center mb-4">
         <h1 class="mb-2">Contest Submission #{{ submission.id }}</h1>
         <p class="lead">
-            Details for your submission to <a href="{% url 'contests:solve_contest_problem' contest.id problem.id %}" class="text-white text-decoration-none fw-bold">{{ problem.name }}</a> in <a href="{% url 'contests:detail' contest.id %}" class="text-white text-decoration-none fw-bold">{{ contest.name }}</a>
+            Details for your submission to <a href="{% url 'contests:solve_contest_problem' submission.contest_problem.contest.id submission.contest_problem.problem.id %}" class="text-white text-decoration-none fw-bold">{{ submission.contest_problem.problem.name }}</a> in <a href="{% url 'contests:detail' submission.contest_problem.contest.id %}" class="text-white text-decoration-none fw-bold">{{ submission.contest_problem.contest.name }}</a>
         </p>
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card mb-4">
-                <div class="card-header">Submission Summary</div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <strong>Submitted By:</strong> {{ submission.participant.username }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Submitted At:</strong> {{ submission.submitted_at|date:"F d, Y H:i:s" }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Language:</strong> <span class="badge bg-info">{{ submission.language|capfirst }}</span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Verdict:</strong>
-                            <span class="verdict-badge bg-{{ submission.final_verdict|default:'pending' }}">{{ submission.get_final_verdict_display|default:"Pending" }}</span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Test Cases:</strong> {{ submission.test_cases_passed|default:0 }} / {{ submission.total_test_cases|default:0 }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Execution Time:</strong> {{ submission.execution_time|floatformat:"3"|default:"N/A" }} s
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <strong>Memory Used:</strong> {{ submission.memory_used|floatformat:"2"|default:"N/A" }} MB
-                        </div>
-                        <div class="col-md-12">
-                            <strong>Score:</strong> <span class="badge bg-primary">{{ submission.score }}</span>
-                        </div>
+        <div class="col-lg-10 col-xl-9">
+            <div class="card p-4 shadow-sm mb-4 animate__animated animate__fadeIn">
+                <h2 class="card-title text-center mb-4 fw-bold">Submission Details</h2>
+                <hr>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Submitted By:</strong> {{ submission.participant.username }}</p>
+                        <p class="mb-2"><strong>Submitted At:</strong> {{ submission.submitted_at|date:"M d, Y H:i:s" }}</p>
+                        <p class="mb-2"><strong>Language:</strong> <span class="badge bg-info text-dark">{{ submission.language|capfirst }}</span></p>
+                        <p class="mb-2"><strong>Score:</strong> <span class="badge bg-primary fs-6 px-3 py-2">{{ submission.score }}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Status:</strong>
+                            <span class="badge {% if submission.status == 'finished' %}bg-success{% else %}bg-info{% endif %} fs-6 px-3 py-2">
+                                {{ submission.get_status_display }}
+                            </span>
+                        </p>
+                        <p class="mb-2"><strong>Final Verdict:</strong>
+                            <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} fs-6 px-3 py-2">
+                                {{ submission.get_final_verdict_display }}
+                            </span>
+                        </p>
+                        {% if submission.total_test_cases %}
+                            <p class="mb-2"><strong>Test Cases:</strong> <span class="fw-bold">{{ submission.test_cases_passed|default:0 }}</span> / {{ submission.total_test_cases }}</p>
+                        {% endif %}
+                        {% if submission.execution_time %}
+                            <p class="mb-2"><strong>Execution Time:</strong> <span class="fw-bold">{{ submission.execution_time|floatformat:"3" }}</span> s</p>
+                        {% endif %}
+                        {% if submission.memory_used %}
+                            <p class="mb-2"><strong>Memory Used:</strong> <span class="fw-bold">{{ submission.memory_used|floatformat:"2" }}</span> MB</p>
+                        {% endif %}
                     </div>
                 </div>
-            </div>
 
-            <div class="card mb-4">
-                <div class="card-header">Submitted Code</div>
-                <div class="card-body">
+                <h3 class="mt-4 fw-bold">Submitted Code:</h3>
+                <div class="code-display-block mb-4">
                     <pre><code class="language-{{ submission.language }}">{{ submission.code }}</code></pre>
                 </div>
-            </div>
 
-            {% if submission.judge_output %}
-            <div class="card mb-4">
-                <div class="card-header">Judge Output / Error Message</div>
-                <div class="card-body">
-                    <pre>{{ submission.judge_output }}</pre>
+                {% if submission.judge_output %} {# Use judge_output for error messages #}
+                    <h3 class="mt-4 text-danger fw-bold">Judge Output / Error Details:</h3>
+                    <div class="error-message-block alert-danger mb-4" role="alert">
+                        <pre><code>{{ submission.judge_output }}</code></pre>
+                    </div>
+                {% elif submission.final_verdict == 'wrong_answer' %}
+                    <div class="alert alert-warning text-center mt-4 shadow-sm" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i> Your code produced incorrect output for one or more test cases.
+                        (For detailed test case differences, consider enhancing the judge to store per-test case results.)
+                    </div>
+                {% endif %}
+
+                <div class="text-center mt-4">
+                    <a href="{% url 'contests:solve_contest_problem' submission.contest_problem.contest.id submission.contest_problem.problem.id %}" class="btn btn-secondary rounded-md me-2">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Problem
+                    </a>
+                    <a href="{% url 'contests:contest_leaderboard' submission.contest_problem.contest.id %}" class="btn btn-info rounded-md">
+                        <i class="fas fa-trophy me-2"></i> View Contest Leaderboard
+                    </a>
                 </div>
-            </div>
-            {% endif %}
-
-            <div class="text-center mt-4">
-                <a href="{% url 'contests:solve_contest_problem' contest.id problem.id %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Problem
-                </a>
-                <a href="{% url 'contests:contest_leaderboard' contest.id %}" class="btn btn-outline-info ms-2">
-                    <i class="fas fa-trophy me-2"></i>View Contest Leaderboard
-                </a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    {# CodeMirror for display purposes - just for syntax highlighting. No editor functionality. #}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script> {# For C++ and Java #}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize CodeMirror for static code display
+            // Find all code blocks that have a language class (e.g., language-python)
+            document.querySelectorAll('pre code[class^="language-"]').forEach(function(block) {
+                let language = block.className.replace('language-', '');
+                let mode = "";
+
+                if (language === "python") {
+                    mode = "python";
+                } else if (language === "cpp") {
+                    mode = "text/x-c++src";
+                } else if (language === "java") {
+                    mode = "text/x-java";
+                }
+
+                if (mode) {
+                    // CodeMirror.runMode is used for non-editable syntax highlighting
+                    // It takes the text content, the mode, and the DOM element to render into.
+                    CodeMirror.runMode(block.textContent, mode, block);
+                    // To apply the theme, you might need to manually add the 'cm-s-dracula' class
+                    // to the <pre> or a parent container if runMode doesn't do it automatically.
+                    // For a full CodeMirror editor experience (even read-only), you would
+                    // initialize it like this:
+                    /*
+                    let editor = CodeMirror(function(elt) {
+                        block.parentNode.replaceChild(elt, block); // Replace the <pre> with CodeMirror's div
+                    }, {
+                        value: block.textContent,
+                        mode: mode,
+                        theme: "dracula", // Apply the theme
+                        readOnly: true,
+                        lineNumbers: true,
+                        lineWrapping: true
+                    });
+                    */
+                }
+            });
+        });
+    </script>
 {% endblock %}

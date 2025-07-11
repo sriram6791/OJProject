@@ -114,7 +114,6 @@ class ContestProblem(models.Model):
         return f"{self.contest.name} - Problem {self.order_in_contest}: {self.problem.name}"
 
 class ContestSubmission(models.Model):
-    # The user who made the submission
     participant = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -122,7 +121,6 @@ class ContestSubmission(models.Model):
         help_text="The user who submitted the solution"
     )
     
-    # The specific problem within a specific contest that was submitted for
     contest_problem = models.ForeignKey(
         ContestProblem,
         on_delete=models.CASCADE,
@@ -133,36 +131,48 @@ class ContestSubmission(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp of the submission")
     code = models.TextField(help_text="The submitted code")
     
-    # Status of the submission after judging
-    SUBMISSION_STATUS_CHOICES = (
+    # Fields for detailed verdict and status, exactly like problems module
+    # Consolidated status_choices to avoid re-definition
+    status_choices = (
         ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('finished', 'Finished'),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=status_choices,
+        default='pending',
+        help_text="Current status of the submission evaluation."
+    )
+
+    final_verdict_choices = (
         ('accepted', 'Accepted'),
         ('wrong_answer', 'Wrong Answer'),
         ('time_limit_exceeded', 'Time Limit Exceeded'),
+        ('memory_limit_exceeded', 'Memory Limit Exceeded'),
         ('runtime_error', 'Runtime Error'),
         ('compilation_error', 'Compilation Error'),
-        ('memory_limit_exceeded', 'Memory Limit Exceeded'),
-        ('judging_error', 'Judging Error'),
+        ('pending', 'Pending Evaluation'), # This is the initial state for final_verdict
+        ('judging_error', 'Judging Error'), # Ensure this is present
     )
-    status = models.CharField(
-        max_length=25,
-        choices=SUBMISSION_STATUS_CHOICES,
+    final_verdict = models.CharField(
+        max_length=50,
+        choices=final_verdict_choices,
         default='pending',
-        help_text="Status of the submission after judging"
+        help_text="Final verdict of the submission."
     )
     
-    # Score for this particular submission (e.g., full points for AC, 0 for WA)
     score = models.IntegerField(
         default=0,
         help_text="Score obtained for this submission"
     )
     
-    # Judging details (useful for feedback)
     test_cases_passed = models.IntegerField(default=0, help_text="Number of test cases passed")
     total_test_cases = models.IntegerField(default=0, help_text="Total number of test cases")
     language = models.CharField(max_length=50, default='python', help_text="Programming language used for the submission")
-    # Optional: store judge output/error messages
     judge_output = models.TextField(blank=True, null=True, help_text="Output/error messages from the judge")
+    execution_time = models.FloatField(default=0.0, help_text="Execution time in seconds")
+    memory_used = models.FloatField(default=0.0, help_text="Memory used in MB")
 
     class Meta:
         verbose_name = "Contest Submission"
@@ -170,4 +180,4 @@ class ContestSubmission(models.Model):
         ordering = ['-submitted_at'] 
 
     def __str__(self):
-        return f"Submission by {self.participant.username} for {self.contest_problem.problem.name} in {self.contest_problem.contest.name} ({self.status})"
+        return f"Submission by {self.participant.username} for {self.contest_problem.problem.name} in {self.contest_problem.contest.name} ({self.final_verdict})"
