@@ -141,12 +141,16 @@
                                             {% if user_submission_for_problem %}
                                                 <span class="ms-2">
                                                     {# Initial rendering of icon based on actual final_verdict (or status if verdict not yet set) #}
-                                                    {% if user_submission_for_problem.status == 'accepted' %}
+                                                    {% if user_submission_for_problem.final_verdict == 'accepted' %}
                                                         <i class="fas fa-check-circle text-success" title="Accepted"></i>
-                                                    {% elif user_submission_for_problem.status == 'wrong_answer' or user_submission_for_problem.status == 'runtime_error' or user_submission_for_problem.status == 'compilation_error' or user_submission_for_problem.status == 'judging_error' or user_submission_for_problem.status == 'time_limit_exceeded' or user_submission_for_problem.status == 'memory_limit_exceeded' %}
-                                                        <i class="fas fa-times-circle text-danger" title="{{ user_submission_for_problem.get_status_display }}"></i>
-                                                    {% else %} {# For 'pending', 'processing', or initial state #}
-                                                        <i class="fas fa-hourglass-half text-warning" title="Pending / Processing"></i>
+                                                    {% elif user_submission_for_problem.status == 'processing' %}
+                                                        <i class="fas fa-circle-notch text-info fa-spin" title="Processing"></i>
+                                                    {% elif user_submission_for_problem.final_verdict == 'wrong_answer' or user_submission_for_problem.final_verdict == 'runtime_error' or user_submission_for_problem.final_verdict == 'compilation_error' or user_submission_for_problem.final_verdict == 'judging_error' %}
+                                                        <i class="fas fa-times-circle text-danger" title="{{ user_submission_for_problem.get_final_verdict_display }}"></i>
+                                                    {% elif user_submission_for_problem.final_verdict == 'time_limit_exceeded' or user_submission_for_problem.final_verdict == 'memory_limit_exceeded' %}
+                                                        <i class="fas fa-clock text-warning" title="{{ user_submission_for_problem.get_final_verdict_display }}"></i>
+                                                    {% else %} {# For 'pending' or initial state #}
+                                                        <i class="fas fa-circle-notch text-secondary fa-spin" title="Pending"></i>
                                                     {% endif %}
                                                 </span>
                                             {% endif %}
@@ -272,32 +276,43 @@
                             {% if current_problem_submissions %} {# Assuming current_problem_submissions is passed from context #}
                                 <div class="list-group list-group-flush">
                                     {% for submission in current_problem_submissions %}
-                                        <a href="{% url 'submissions:detail' submission.id %}"
+                                        <a href="{% url 'submissions:contest_detail' submission.id %}"
                                            class="list-group-item list-group-item-action border-0 px-4 py-3"
-                                           id="contest-submission-{{ submission.id }}" {# Unique ID for JS targeting #}
-                                           data-submission-id="{{ submission.id }}" {# Data attribute for submission ID #}
-                                           data-submission-status="{{ submission.status }}" {# Data attribute for current status #}
-                                           data-submission-verdict="{{ submission.status|default:'pending' }}"> {# Data attribute for status #}
+                                           id="contest-submission-{{ submission.id }}"
+                                           data-submission-id="{{ submission.id }}"
+                                           data-submission-status="{{ submission.status }}"
+                                           data-submission-verdict="{{ submission.final_verdict|default:'pending' }}">
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex align-items-center mb-2">
-                                                        {# Initial icon based on initial state from DB. JS will update this. #}
-                                                        {% if submission.status == 'accepted' %}
+                                                        {# Initial icon based on final verdict state #}
+                                                        {% if submission.final_verdict == 'accepted' %}
                                                             <i class="fas fa-check-circle text-success me-2 submission-icon"></i>
-                                                        {% elif submission.status == 'wrong_answer' or submission.status == 'runtime_error' or submission.status == 'compilation_error' or submission.status == 'judging_error' %}
+                                                        {% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}
                                                             <i class="fas fa-times-circle text-danger me-2 submission-icon"></i>
-                                                        {% elif submission.status == 'time_limit_exceeded' or submission.status == 'memory_limit_exceeded' %}
+                                                        {% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}
                                                             <i class="fas fa-clock text-warning me-2 submission-icon"></i>
-                                                        {% else %} {# Default for 'pending' or missing status #}
+                                                        {% else %} {# Default for 'pending' or processing status #}
                                                             <i class="fas fa-circle-notch text-secondary me-2 fa-spin submission-icon"></i>
                                                         {% endif %}
                                                         <strong class="text-dark">{{ submission.submitted_at|date:"M d, H:i" }}</strong>
                                                     </div>
                                                     <div class="d-flex gap-2 mb-2">
                                                         <span class="badge bg-info text-dark">{{ submission.language|capfirst }}</span>
-                                                        {# Initial badge based on initial state from DB. JS will update this. #}
-                                                        <span class="badge {% if submission.status == 'accepted' %}bg-success{% elif submission.status == 'wrong_answer' or submission.status == 'runtime_error' or submission.status == 'compilation_error' or submission.status == 'judging_error' %}bg-danger{% elif submission.status == 'time_limit_exceeded' or submission.status == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} submission-verdict-badge">
-                                                            {{ submission.get_status_display|default:"Pending" }}
+                                                        {# Status badge #}
+                                                        <span class="badge {% if submission.status == 'finished' %}bg-success{% elif submission.status == 'processing' %}bg-info{% else %}bg-secondary{% endif %} submission-status-badge">
+                                                            <i class="fas fa-spinner {% if submission.status != 'finished' %}fa-spin{% endif %} me-1"></i>{{ submission.get_status_display }}
+                                                        </span>
+                                                        {# Final verdict badge #}
+                                                        <span class="badge {% if submission.final_verdict == 'accepted' %}bg-success{% elif submission.final_verdict == 'wrong_answer' or submission.final_verdict == 'runtime_error' or submission.final_verdict == 'compilation_error' or submission.final_verdict == 'judging_error' %}bg-danger{% elif submission.final_verdict == 'time_limit_exceeded' or submission.final_verdict == 'memory_limit_exceeded' %}bg-warning text-dark{% else %}bg-secondary{% endif %} submission-verdict-badge">
+                                                            {% if submission.final_verdict == 'accepted' %}<i class="fas fa-check me-1"></i>
+                                                            {% elif submission.final_verdict == 'wrong_answer' %}<i class="fas fa-times me-1"></i>
+                                                            {% elif submission.final_verdict == 'runtime_error' %}<i class="fas fa-exclamation-triangle me-1"></i>
+                                                            {% elif submission.final_verdict == 'compilation_error' %}<i class="fas fa-code me-1"></i>
+                                                            {% elif submission.final_verdict == 'time_limit_exceeded' %}<i class="fas fa-clock me-1"></i>
+                                                            {% elif submission.final_verdict == 'memory_limit_exceeded' %}<i class="fas fa-memory me-1"></i>
+                                                            {% elif submission.final_verdict == 'judging_error' %}<i class="fas fa-bug me-1"></i>
+                                                            {% else %}<i class="fas fa-circle-notch fa-spin me-1"></i>{% endif %}{{ submission.get_final_verdict_display }}
                                                         </span>
                                                     </div>
                                                     {% if submission.total_test_cases %}
@@ -429,19 +444,57 @@
                 }
             }
 
-            // Update badge text and color
-            const badgeElement = submissionElement.querySelector('.submission-verdict-badge');
-            if (badgeElement) {
-                badgeElement.textContent = capitalizeFirstLetter(finalVerdict); // Use formatVerdictText for proper casing
-                badgeElement.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'text-dark', 'bg-secondary');
-                if (finalVerdict === 'accepted') {
-                    badgeElement.classList.add('bg-success');
-                } else if (['wrong_answer', 'runtime_error', 'compilation_error', 'judging_error'].includes(finalVerdict)) {
-                    badgeElement.classList.add('bg-danger');
-                } else if (['time_limit_exceeded', 'memory_limit_exceeded'].includes(finalVerdict)) {
-                    badgeElement.classList.add('bg-warning', 'text-dark');
+            // Update badge text and color based on status and final verdict
+            const statusBadgeElement = submissionElement.querySelector('.submission-status-badge');
+            const verdictBadgeElement = submissionElement.querySelector('.submission-verdict-badge');
+
+            // Update status badge
+            if (statusBadgeElement) {
+                statusBadgeElement.innerHTML = `<i class="fas fa-spinner ${currentStatus !== 'finished' ? 'fa-spin' : ''} me-1"></i>${capitalizeFirstLetter(currentStatus)}`;
+                statusBadgeElement.classList.remove('bg-success', 'bg-info', 'bg-secondary');
+                if (currentStatus === 'finished') {
+                    statusBadgeElement.classList.add('bg-success');
+                } else if (currentStatus === 'processing') {
+                    statusBadgeElement.classList.add('bg-info');
                 } else {
-                    badgeElement.classList.add('bg-secondary');
+                    statusBadgeElement.classList.add('bg-secondary');
+                }
+            }
+
+            // Update verdict badge
+            if (verdictBadgeElement) {
+                let verdictIcon = '';
+                if (finalVerdict === 'accepted') {
+                    verdictIcon = '<i class="fas fa-check me-1"></i>';
+                } else if (finalVerdict === 'wrong_answer') {
+                    verdictIcon = '<i class="fas fa-times me-1"></i>';
+                } else if (finalVerdict === 'runtime_error') {
+                    verdictIcon = '<i class="fas fa-exclamation-triangle me-1"></i>';
+                } else if (finalVerdict === 'compilation_error') {
+                    verdictIcon = '<i class="fas fa-code me-1"></i>';
+                } else if (finalVerdict === 'time_limit_exceeded') {
+                    verdictIcon = '<i class="fas fa-clock me-1"></i>';
+                } else if (finalVerdict === 'memory_limit_exceeded') {
+                    verdictIcon = '<i class="fas fa-memory me-1"></i>';
+                } else if (finalVerdict === 'judging_error') {
+                    verdictIcon = '<i class="fas fa-bug me-1"></i>';
+                } else {
+                    verdictIcon = '<i class="fas fa-circle-notch fa-spin me-1"></i>';
+                }
+                verdictBadgeElement.innerHTML = verdictIcon + capitalizeFirstLetter(finalVerdict === 'success' ? 'accepted' : finalVerdict);
+
+                verdictBadgeElement.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'text-dark', 'bg-secondary', 'bg-info');
+                
+                if (currentStatus === 'processing') {
+                    verdictBadgeElement.classList.add('bg-info');
+                } else if (finalVerdict === 'accepted' || finalVerdict === 'success') {
+                    verdictBadgeElement.classList.add('bg-success');
+                } else if (['wrong_answer', 'runtime_error', 'compilation_error', 'judging_error'].includes(finalVerdict)) {
+                    verdictBadgeElement.classList.add('bg-danger');
+                } else if (['time_limit_exceeded', 'memory_limit_exceeded'].includes(finalVerdict)) {
+                    verdictBadgeElement.classList.add('bg-warning', 'text-dark');
+                } else {
+                    verdictBadgeElement.classList.add('bg-secondary');
                 }
             }
 
@@ -452,14 +505,14 @@
             if (testsPassedElement) testsPassedElement.textContent = data.test_cases_passed || '0';
             if (testsTotalElement) testsTotalElement.textContent = data.total_test_cases || '0';
 
-            // If status is 'finished', stop polling for this submission
-            if (currentStatus === 'finished' && activePolls[submissionElement.dataset.submissionId]) {
+            // Stop polling only if status is 'finished' and final_verdict is not 'pending'
+            if (currentStatus === 'finished' && finalVerdict !== 'pending' && activePolls[submissionElement.dataset.submissionId]) {
                 clearInterval(activePolls[submissionElement.dataset.submissionId]);
                 delete activePolls[submissionElement.dataset.submissionId];
                 if (iconElement && iconElement.classList.contains('fa-spin')) {
                     iconElement.classList.remove('fa-spin'); // Stop spin animation
                 }
-                console.log(`Polling stopped for submission ${submissionElement.dataset.submissionId}`);
+                console.log(`Polling stopped for submission ${submissionElement.dataset.submissionId} with final verdict ${finalVerdict}`);
             }
         }
 
@@ -508,22 +561,24 @@
             const currentStatus = submissionElement.dataset.submissionStatus;
             const currentVerdict = submissionElement.dataset.submissionVerdict;
 
-            // Only poll if not already finished AND not already being polled
-            // The condition `currentVerdict === 'pending'` is crucial here for initial state.
-            // If the verdict is already something final, we don't need to poll.
-            if (currentStatus !== 'finished' && currentVerdict === 'pending' && !activePolls[submissionId]) {
-                console.log(`Starting polling for submission ${submissionId}`);
-                // Immediately update once, then set interval
-                pollSubmissionStatus(submissionId, submissionElement);
-                activePolls[submissionId] = setInterval(() => {
+            // Start polling if:
+            // 1. Status is 'pending' or 'processing' OR
+            // 2. Status is not 'finished' and final_verdict is 'pending'
+            if ((currentStatus === 'pending' || currentStatus === 'processing') || 
+                (currentStatus !== 'finished' && currentVerdict === 'pending')) {
+                if (!activePolls[submissionId]) {
+                    console.log(`Starting polling for submission ${submissionId}`);
+                    // Immediately update once, then set interval
                     pollSubmissionStatus(submissionId, submissionElement);
-                }, pollingInterval);
+                    activePolls[submissionId] = setInterval(() => {
+                        pollSubmissionStatus(submissionId, submissionElement);
+                    }, pollingInterval);
+                }
             } else {
-                 // If already finished or has a final verdict on page load, ensure correct display
-                 // This fetches one last time to ensure all data is up-to-date in case judge finished just before page load
-                 if (submissionId) { // Ensure submissionId exists
+                // If already finished, ensure we have the latest data
+                if (submissionId) {
                     pollSubmissionStatus(submissionId, submissionElement);
-                 }
+                }
             }
         }
 
