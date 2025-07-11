@@ -181,3 +181,39 @@ class ContestSubmission(models.Model):
 
     def __str__(self):
         return f"Submission by {self.participant.username} for {self.contest_problem.problem.name} in {self.contest_problem.contest.name} ({self.final_verdict})"
+        
+    def clean(self):
+        """Validate model fields before saving"""
+        super().clean()
+        # Ensure status is one of the valid choices
+        valid_statuses = dict(self.status_choices).keys()
+        if self.status not in valid_statuses:
+            self.status = 'finished'  # Default to finished if invalid status
+            
+        # Ensure final_verdict is one of the valid choices
+        valid_verdicts = dict(self.final_verdict_choices).keys()
+        if self.final_verdict not in valid_verdicts:
+            self.final_verdict = 'pending'  # Default to pending if invalid verdict
+            
+    def save(self, *args, **kwargs):
+        """Override save to ensure clean is called"""
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def get_status_display(self):
+        """Get the human-readable status"""
+        try:
+            return dict(self.status_choices)[self.status]
+        except KeyError:
+            self.status = 'finished'  # Fix invalid status
+            self.save()
+            return dict(self.status_choices)[self.status]
+        
+    def get_final_verdict_display(self):
+        """Get the human-readable final verdict"""
+        try:
+            return dict(self.final_verdict_choices)[self.final_verdict]
+        except KeyError:
+            self.final_verdict = 'pending'  # Fix invalid verdict
+            self.save()
+            return dict(self.final_verdict_choices)[self.final_verdict]

@@ -156,15 +156,19 @@ def submit_contest_code(request, contest_id, problem_id):
         return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
 
     try:
-        # Create a new ContestSubmission instance
+        # Create a new ContestSubmission instance with proper initialization
         submission = ContestSubmission.objects.create(
             participant=request.user,
-            contest_problem=contest_problem, # Link to the ContestProblem instance
+            contest_problem=contest_problem,
             code=code,
             language=language,
-            status='pending', # Initial status
-            # final_verdict='pending',
-            # final_verdict, test_cases_passed, total_test_cases, execution_time, memory_used, judge_output will be set by judge
+            status='pending',  # Status can only be: pending, processing, finished
+            final_verdict='pending',  # This is where accepted/wrong_answer etc. will go later
+            test_cases_passed=0,
+            total_test_cases=0,
+            execution_time=0.0,
+            memory_used=0.0,
+            score=0
         )
 
         # Queue the evaluation task for contest submissions
