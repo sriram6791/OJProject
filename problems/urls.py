@@ -8,4 +8,5 @@ app_name = 'problems' # Namespace for this app's URLs
 urlpatterns = [
     path('', views.problem_list_view, name='list'),
     path('<int:problem_id>/', views.problem_detail_view, name='detail'),
+    path('api/test-custom-input/', views.test_with_custom_input, name='test_custom_input'),  # Changed to be under /api/
 ]

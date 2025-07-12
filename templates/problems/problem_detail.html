@@ -3,9 +3,6 @@
 {% block title %}{{ problem.name }} - Online Judge{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.css">
 {% endblock %}
 
 {% block content %}
@@ -91,6 +88,30 @@
                                     <textarea class="form-control border" id="codeEditor" name="code" rows="12" 
                                             placeholder="Write your solution here..." required
                                             style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 14px; line-height: 1.5;"></textarea>
+                            </div>
+
+                            <!-- Custom Input Section -->
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label for="customInput" class="form-label fw-semibold mb-0">Custom Input</label>
+                                    <button type="button" id="runCustomInput" class="btn btn-success">
+                                        <i class="fas fa-play me-2"></i>Run Code
+                                    </button>
+                                </div>
+                                <textarea class="form-control border" id="customInput" rows="4" 
+                                        placeholder="Enter your test input here..."
+                                        style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 14px; line-height: 1.5;"></textarea>
+                            </div>
+
+                            <!-- Custom Output Section -->
+                            <div class="mt-3" id="customOutputSection" style="display: none;">
+                                <div class="bg-light rounded-3 p-3 border">
+                                    <h6 class="fw-bold text-primary mb-3">
+                                        <i class="fas fa-terminal me-2"></i>Output
+                                    </h6>
+                                    <pre id="customOutput" class="bg-white p-3 rounded border-0 text-dark mb-2" style="font-family: 'JetBrains Mono', monospace; font-size: 14px;"></pre>
+                                    <div id="executionDetails" class="small text-muted"></div>
+                                </div>
                             </div>
                         </form>
                     {% else %}
@@ -179,6 +200,77 @@
 
 {% block extra_js %}
 {{ block.super }}
+<script>
+console.log('Script starting...');
+
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded');
+    
+    // Get the run button
+    const runButton = document.querySelector('#runCustomInput');
+    console.log('Run button found:', runButton);
+    
+    if (runButton) {
+        runButton.addEventListener('click', function() {
+            console.log('Run button clicked!');
+            
+            // Get the values
+            const code = document.querySelector('#codeEditor').value;
+            const input = document.querySelector('#customInput').value;
+            const language = document.querySelector('#languageSelect').value;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            console.log('Sending request with:', {language, inputLength: input.length});
+            
+            // Make the request
+            fetch("{% url 'problems:test_custom_input' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    code: code,
+                    input: input,
+                    language: language
+                })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                const outputSection = document.querySelector('#customOutputSection');
+                const output = document.querySelector('#customOutput');
+                const details = document.querySelector('#executionDetails');
+                
+                outputSection.style.display = 'block';
+                output.textContent = data.stdout || data.stderr || 'No output';
+                
+                if (details) {
+                    details.innerHTML = `
+                        <span class="badge ${data.verdict === 'success' ? 'bg-success' : 'bg-danger'} me-2">
+                            ${data.verdict.toUpperCase()}
+                        </span>
+                        <span class="me-3">Time: ${data.execution_time.toFixed(2)}s</span>
+                        <span>Memory: ${data.memory_used.toFixed(2)}MB</span>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error running code: ' + error.message);
+            });
+        });
+        
+        console.log('Event listener attached to run button');
+    } else {
+        console.error('Run button not found in the document!');
+    }
+});
+</script>
 <script id="problem-data" type="application/json">
 {
     "problemId": {% if problem.id %}{{ problem.id }}{% else %}0{% endif %}
@@ -308,6 +400,40 @@
                     }, 3000);
                 }
             });
+        }
+
+        // Language change handler
+        document.getElementById('languageSelect').addEventListener('change', function() {
+            if (editor) {
+                var mode = this.value === 'python' ? 'python' : 'text/x-c++src';
+                editor.setOption('mode', mode);
+            }
+        });
+
+        // Handle language change
+        document.getElementById('languageSelect').addEventListener('change', function() {
+            var mode = this.value === 'python' ? 'python' : 'text/x-c++src';
+            editor.setOption('mode', mode);
+        });
+
+        // Initialize CodeMirror
+        let editor;
+        try {
+            editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
+                lineNumbers: true,
+                mode: "python",
+                theme: "material-darker",
+                indentUnit: 4,
+                smartIndent: true,
+                lineWrapping: true,
+                foldGutter: true,
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                styleActiveLine: true
+            });
+        } catch (error) {
+            console.log('CodeMirror not available, using standard textarea');
         }
     });
 </script>

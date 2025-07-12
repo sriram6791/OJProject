@@ -3,6 +3,10 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Problem
 from submissions.models import Submission
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from judge_core.judge import evaluate_with_custom_input
+import json
 
 
 # Create your views here.
@@ -66,3 +70,27 @@ def problem_detail_view(request, problem_id):
         'language_choices': ['Python', 'C++', 'Java'], # Hardcoded for now
     }
     return render(request, 'problems/problem_detail.html', context)
+
+@csrf_exempt  # For simplicity. In production, use proper CSRF protection
+def test_with_custom_input(request):
+    print("Received request for custom input testing")
+    if request.method != 'POST':
+        print(f"Invalid method: {request.method}")
+        return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        print("Received data:", data)
+        code = data.get('code')
+        input_data = data.get('input', '')
+        language = data.get('language', '').lower()
+        print(f"Processing: language={language}, input_length={len(input_data) if input_data else 0}")
+        
+        if not code or not language:
+            return JsonResponse({'error': 'Code and language are required'}, status=400)
+            
+        result = evaluate_with_custom_input(code, input_data, language)
+        return JsonResponse(result)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

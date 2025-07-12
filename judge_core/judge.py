@@ -48,7 +48,7 @@ def _run_docker_command(command, time_limit, memory_limit_mb, stdin_data=None, w
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True, # Decode stdout/stderr as text
-            preexec_fn=os.setsid # For killing the process group on timeout
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
         )
 
         stdout_data, stderr_data = None, None
@@ -497,3 +497,51 @@ def evaluate_contest_solution(contest_submission_id):
             contest_submission.save()
         except:
             pass
+
+def evaluate_with_custom_input(code, input_data, language, time_limit=5, memory_limit=256):
+    """
+    Evaluates code with custom input without storing in database.
+    Returns a dictionary with execution results.
+    """
+    try:
+        stdout = ""
+        stderr = ""
+        verdict = "pending"
+        execution_time = 0.0
+        memory_used = 0.0
+
+        # Run the appropriate judge based on language
+        if language == 'python':
+            stdout, stderr, verdict, execution_time, memory_used = judge_python(
+                code, input_data, time_limit, memory_limit
+            )
+        elif language == 'cpp':
+            stdout, stderr, verdict, execution_time, memory_used = judge_cpp(
+                code, input_data, time_limit, memory_limit
+            )
+        elif language == 'java':
+            stdout, stderr, verdict, execution_time, memory_used = judge_java(
+                code, input_data, time_limit, memory_limit
+            )
+        else:
+            verdict = "runtime_error"
+            stderr = "Unsupported language for judging."
+
+        result = {
+            'stdout': stdout,
+            'stderr': stderr,
+            'verdict': verdict,
+            'execution_time': execution_time,
+            'memory_used': memory_used
+        }
+        
+        return result
+
+    except Exception as e:
+        return {
+            'stdout': '',
+            'stderr': str(e),
+            'verdict': 'runtime_error',
+            'execution_time': 0.0,
+            'memory_used': 0.0
+        }
