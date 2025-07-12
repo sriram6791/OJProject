@@ -379,32 +379,40 @@ def evaluate_contest_solution(contest_submission_id):
     Main function called by Celery task to evaluate a CONTEST Submission.
     This will update the ContestSubmission object in the database.
     """
-    # Import inside function to avoid circular import issues with Celery
+    # Import inside function to avoid circular import issues
     from contests.models import ContestSubmission, ContestProblem
-    from problems.models import Problem, TestCase # Need Problem and TestCase models
+    from problems.models import Problem, TestCase
 
     try:
         contest_submission = ContestSubmission.objects.get(id=contest_submission_id)
-        contest_problem = contest_submission.contest_problem # Get the ContestProblem object
-        problem = contest_problem.problem # Get the actual Problem object
+        contest_problem = contest_submission.contest_problem
+        problem = contest_problem.problem
         test_cases = problem.test_cases.all().order_by('order')
 
-        contest_submission.status = 'pending'  # Set to pending to indicate processing
-        contest_submission.save(update_fields=['status'])
-
-        passed_count = 0
+        # Calculate total count first
         total_count = test_cases.count()
 
-        # Define limits (should align with problem difficulty or problem specific settings)
-        TIME_LIMIT_SECONDS = getattr(problem, 'time_limit', 5) # Use problem-specific limits if available
-        MEMORY_LIMIT_MB = getattr(problem, 'memory_limit', 256) # Use problem-specific limits if available
+        # Initialize submission state properly
+        contest_submission.status = 'processing'  # Only use: pending, processing, finished
+        contest_submission.final_verdict = 'pending'  # Explicitly set to pending initially
+        contest_submission.execution_time = 0.0
+        contest_submission.memory_used = 0.0
+        contest_submission.test_cases_passed = 0
+        contest_submission.total_test_cases = total_count
+        contest_submission.score = 0
+        contest_submission.save(force_update=True)  # Force update to ensure all fields are saved
+
+        passed_count = 0
+
+        # Define limits
+        TIME_LIMIT_SECONDS = getattr(problem, 'time_limit', 5)
+        MEMORY_LIMIT_MB = getattr(problem, 'memory_limit', 256)
         
-        # Fallback to default if problem limits are not set
         if not TIME_LIMIT_SECONDS: TIME_LIMIT_SECONDS = 5
         if not MEMORY_LIMIT_MB: MEMORY_LIMIT_MB = 256
 
-        final_verdict = "accepted"
-        last_error_message = "" # To store the most relevant error message
+        final_verdict = "accepted"  # Start optimistic
+        last_error_message = ""
 
         for i, test_case in enumerate(test_cases):
             input_data = test_case.input_data
@@ -416,6 +424,7 @@ def evaluate_contest_solution(contest_submission_id):
             execution_time_tc = 0.0
             memory_used_tc = 0.0
 
+            # Run the appropriate judge based on language
             if contest_submission.language == 'python':
                 stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python(
                     contest_submission.code, input_data, TIME_LIMIT_SECONDS, MEMORY_LIMIT_MB
@@ -429,11 +438,14 @@ def evaluate_contest_solution(contest_submission_id):
                     contest_submission.code, input_data, TIME_LIMIT_SECONDS, MEMORY_LIMIT_MB
                 )
             else:
-                verdict_for_test_case = "runtime_error" # Unsupported language
+                verdict_for_test_case = "runtime_error"
                 stderr = "Unsupported language for judging."
+            
+            # Ensure status is always one of: pending, processing, finished
+            contest_submission.status = 'processing'  # Keep status as processing during evaluation
 
-            # Update final_verdict based on test case result
-            if verdict_for_test_case == "success":
+            # Update verdict based on test case result
+            if verdict_for_test_case in ["success", "accepted"]:
                 if clean_output(stdout) == clean_output(expected_output):
                     passed_count += 1
                 else:
@@ -442,8 +454,7 @@ def evaluate_contest_solution(contest_submission_id):
                     if final_verdict == "accepted":
                         final_verdict = "wrong_answer"
             else:
-                # If a test case fails, its verdict might become the overall verdict
-                # Prioritize errors: CE > RE > TLE/MLE > WA
+                # Handle various error cases
                 if verdict_for_test_case == "compilation_error":
                     final_verdict = "compilation_error"
                     last_error_message = stderr
@@ -470,33 +481,46 @@ def evaluate_contest_solution(contest_submission_id):
                     if final_verdict == "accepted":
                         final_verdict = "wrong_answer"
 
-        # Update ContestSubmission fields using the correct field names
-        contest_submission.status = final_verdict  # Use status field for final verdict
-        contest_submission.test_cases_passed = passed_count  # Correct field name
-        contest_submission.total_test_cases = total_count    # Correct field name
-        contest_submission.judge_output = last_error_message # Use judge_output field for error message
+            # Update execution metrics (take maximum values)
+            contest_submission.execution_time = max(contest_submission.execution_time or 0.0, execution_time_tc)
+            contest_submission.memory_used = max(contest_submission.memory_used or 0.0, memory_used_tc)
 
-        # Set score for contest submission
-        if final_verdict == 'accepted':
+        # Final updates after all test cases
+        contest_submission.status = 'finished'  # Always finished at this point
+        contest_submission.test_cases_passed = passed_count
+        contest_submission.total_test_cases = total_count
+        contest_submission.judge_output = last_error_message
+
+        # Set final verdict and score based on test results
+        if passed_count == total_count:
+            # All test cases passed, force verdict to accepted
+            contest_submission.final_verdict = 'accepted'
             contest_submission.score = contest_problem.points
         else:
-            contest_submission.score = 0 # No points for incorrect or failed submissions
+            # Not all test cases passed, use accumulated verdict
+            contest_submission.final_verdict = final_verdict
+            contest_submission.score = 0
 
-        contest_submission.save()
-        print(f"Contest Submission {contest_submission.id} for Contest Problem {contest_problem.id} (Problem {problem.name}) finished with verdict: {final_verdict}")
+        # Save everything at once with force_update
+        contest_submission.save(force_update=True)
+        
+        print(f"Contest Submission {contest_submission.id} evaluation complete: "
+              f"status={contest_submission.status}, "
+              f"verdict={contest_submission.final_verdict}, "
+              f"passed={passed_count}/{total_count}")
 
     except Exception as e:
-        # Import inside exception handler to avoid circular import issues
         from contests.models import ContestSubmission
-        print(f"Contest Submission with ID {contest_submission_id} does not exist.")
         print(f"Error evaluating contest submission {contest_submission_id}: {e}")
         try:
             contest_submission = ContestSubmission.objects.get(id=contest_submission_id)
-            contest_submission.status = 'runtime_error' # Or 'judging_error'
+            contest_submission.status = 'finished'  # Status can only be: pending, processing, finished
+            contest_submission.final_verdict = 'judging_error'  # This is where error type goes
             contest_submission.judge_output = f"Judge system error: {e}"
+            contest_submission.score = 0
             contest_submission.save()
-        except:
-            pass
+        except Exception as inner_e:
+            print(f"Failed to update error state for submission {contest_submission_id}: {inner_e}")
 
 def evaluate_with_custom_input(code, input_data, language, time_limit=5, memory_limit=256):
     """

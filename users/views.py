@@ -68,8 +68,63 @@ def logout_view(request):
 def profile_view(request):
     """
     Template-based view for user profile.
+    Shows user statistics and recent submissions.
     """
-    return render(request, 'users/profile.html', {'user': request.user})
+    from django.db.models import Count, Q
+    from submissions.models import Submission
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    
+    # Get all user submissions
+    user_submissions = Submission.objects.filter(user=request.user)
+    
+    # Count total submissions
+    total_count = user_submissions.count()
+    
+    # Count accepted submissions (problems solved)
+    accepted_count = user_submissions.filter(final_verdict='accepted').count()
+    
+    # Count unique accepted problems
+    unique_accepted_problems = user_submissions.filter(
+        final_verdict='accepted'
+    ).values_list('problem', flat=True).distinct().count()
+    
+    # Calculate success rate
+    success_rate = (accepted_count / total_count * 100) if total_count > 0 else 0
+    
+    # Get recent submissions (last 10)
+    recent_submissions = user_submissions.select_related('problem')[:10]
+    
+    # Calculate user rank
+    # Get all users with their solved problem counts
+    users_with_solved_counts = User.objects.annotate(
+        solved_problems_count=Count(
+            'submissions__problem',
+            filter=Q(submissions__final_verdict='accepted'),
+            distinct=True
+        )
+    ).order_by('-solved_problems_count')
+    
+    # Find the current user's rank
+    user_rank = None
+    for index, user in enumerate(users_with_solved_counts, start=1):
+        if user.id == request.user.id:
+            user_rank = index
+            break
+    
+    context = {
+        'user': request.user,
+        'user_submissions': {
+            'total_count': total_count,
+            'accepted_count': unique_accepted_problems,  # Using unique problems count
+            'success_rate': success_rate,
+        },
+        'user_rank': user_rank,
+        'recent_submissions': recent_submissions,
+    }
+    
+    return render(request, 'users/profile.html', context)
 
 # API Views
 class UserRegisterAPIView(APIView):
