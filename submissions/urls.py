@@ -4,7 +4,7 @@ from django.urls import path
 from . import views
 from .views import (
     # Your existing views like SubmissionCreateView, SubmissionDetailView, SubmissionStatusAPIView
-    # ContestSubmissionCreateAPIView, # NEW
+    ContestSubmissionStatusAPIView,
     ContestSubmissionStatusAPIView, # NEW
 )
 
@@ -17,4 +17,5 @@ urlpatterns = [
      # CORRECTED LINE: Point to the function-based view
     path('contest_submit/<int:contest_id>/<int:problem_id>/', views.submit_contest_code, name='submit_contest_code'),
     path('api/contest_status/<int:pk>/', ContestSubmissionStatusAPIView.as_view(), name='api_contest_submission_status'),
+    path('contest_detail/<int:submission_id>/', views.contest_submission_detail_view, name='contest_detail'),
 ]

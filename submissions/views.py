@@ -156,14 +156,19 @@ def submit_contest_code(request, contest_id, problem_id):
         return redirect('contests:solve_contest_problem', contest_pk=contest_id, problem_pk=problem_id)
 
     try:
-        # Create a new ContestSubmission instance
+        # Create a new ContestSubmission instance with proper initialization
         submission = ContestSubmission.objects.create(
             participant=request.user,
-            contest_problem=contest_problem, # Link to the ContestProblem instance
+            contest_problem=contest_problem,
             code=code,
             language=language,
-            status='pending', # Initial status
-            # final_verdict, test_cases_passed, total_test_cases, execution_time, memory_used, judge_output will be set by judge
+            status='pending',  # Status can only be: pending, processing, finished
+            final_verdict='pending',  # This is where accepted/wrong_answer etc. will go later
+            test_cases_passed=0,
+            total_test_cases=0,
+            execution_time=0.0,
+            memory_used=0.0,
+            score=0
         )
 
         # Queue the evaluation task for contest submissions
@@ -191,24 +196,46 @@ class ContestSubmissionStatusAPIView(LoginRequiredMixin, View):
     API endpoint to get the status of a specific contest submission.
     """
     def get(self, request, pk, *args, **kwargs):
-        # Changed 'pk' to 'submission_id' for consistency with common URL naming
-        # or just make sure your URL pattern matches 'pk'
-        submission = get_object_or_404(ContestSubmission, pk=pk) # Fetch from ContestSubmission
+        submission = get_object_or_404(ContestSubmission, pk=pk)
         
-        # Ensure user can only check their own submissions or if they are staff/admin
-        if request.user != submission.participant and not request.user.is_staff and not request.user.is_admin:
+        if request.user != submission.participant and not request.user.is_staff and not request.user.is_superuser:
              return JsonResponse({'error': 'Not authorized to view this submission.'}, status=403)
 
         data = {
             'id': submission.id,
-            'status': submission.status,
+            'status': submission.status, # This will be 'pending', 'processing', or 'finished'
+            'final_verdict': submission.final_verdict, # This will be 'pending', 'accepted', 'wrong_answer', etc.
             'test_cases_passed': submission.test_cases_passed,
             'total_test_cases': submission.total_test_cases,
-            'execution_time': 0.0,  # ContestSubmission doesn't have this field, so default to 0
-            'judge_output': submission.judge_output, # If you have this field for errors/details
-            'final_verdict': submission.status, # Use status as final_verdict for contest submissions
+            'execution_time': submission.execution_time,
+            'memory_used': submission.memory_used,
+            'judge_output': submission.judge_output,
         }
         return JsonResponse(data)
 
 
 
+# --- NEW VIEW: contest_submission_detail_view ---
+@login_required
+def contest_submission_detail_view(request, submission_id):
+    """
+    Displays the details of a specific contest submission.
+    """
+    submission = get_object_or_404(ContestSubmission, pk=submission_id)
+
+    # Ensure the user is authorized to view this submission
+    # Only the participant, or staff/admin, should be able to view it.
+    if request.user != submission.participant and not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, "You are not authorized to view this contest submission.")
+        # Redirect to a safe place, e.g., contest problems page or contest list
+        return redirect('contests:solve_contest_problem', contest_pk=submission.contest_problem.contest.id, problem_pk=submission.contest_problem.problem.id)
+
+    context = {
+        'submission': submission,
+        'is_contest_submission': True, # Flag for template to differentiate
+        # You might want to pass problem and contest details directly for convenience
+        'problem': submission.contest_problem.problem,
+        'contest': submission.contest_problem.contest,
+    }
+    # You'll need to create a new template for this, e.g., 'submissions/contest_submission_detail.html'
+    return render(request, 'submissions/contest_submission_detail.html', context)
