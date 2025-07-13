@@ -16,8 +16,26 @@
         align-items: center; /* Vertically align content */
         justify-content: space-between; /* Space out title and timer */
     }
-    .contest-header h1, .contest-header p {
+    .contest-header .contest-info {
+        max-width: 70%; /* Control width for large titles */
+    }
+    .contest-header h1 {
         color: white !important;
+        font-size: 2.5rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        letter-spacing: 0.5px;
+    }
+    .contest-header p {
+        color: rgba(255,255,255,0.9) !important;
+        font-size: 1.1rem;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .text-gradient {
+        background: linear-gradient(90deg, #ffffff, #f0f0f0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
     }
     .timer-badge {
         font-size: 1.5rem; /* Slightly larger */
@@ -55,10 +73,7 @@
         font-size: 16px;
         font-weight: 400; /* Normal weight */
     }
-    /* Submissions list height - consider if you need a max-height here */
-    .submissions-card-body {
-        /* Removed fixed max-height and overflow-y to allow natural expansion */
-    }
+    /* Container padding adjustments */
     .container-fluid {
         padding-top: 2rem; /* Add top padding to the whole container */
         padding-bottom: 3rem; /* Add more bottom padding */
@@ -92,10 +107,12 @@
 {% block content %}
 <div class="container-fluid mt-4 px-lg-5 pb-5">
     <div class="contest-header d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="mb-1">{{ contest.name }}</h1>
-            {# Added mb-0 to description paragraph for consistent spacing and ensure padding beneath #}
-            <p class="mb-0">{{ contest.description|truncatewords:15 }}</p>
+        <div class="contest-info py-3">
+            <h1 class="mb-2 text-gradient fw-bold">
+                <i class="fas fa-trophy me-2"></i>{{ contest.name }}
+            </h1>
+            {# Added pb-2 for padding below the description #}
+            <p class="mb-0 text-muted pb-2 fs-5">{{ contest.description|truncatewords:15 }}</p>
         </div>
         <div class="text-end">
             <span class="timer-badge" id="contestTimer">Loading Timer...</span>
