@@ -3,11 +3,184 @@
 {% block title %}{{ problem.name }} - Online Judge{% endblock %}
 
 {% block extra_css %}
+<style>
+    /* Modern styling enhancements */
+    .card {
+        border-radius: 12px !important;
+        transition: all 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+    }
+
+    .badge {
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+    }
+
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .list-group-item {
+        border-radius: 0 !important;
+        transition: all 0.2s ease;
+    }
+
+    .list-group-item:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+        border-left: 4px solid #0d6efd !important;
+    }
+
+    pre {
+        max-height: 150px;
+        overflow-y: auto;
+        white-space: pre-wrap; /* Ensure pre-formatted text wraps */
+        word-wrap: break-word;
+    }
+
+    pre::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    pre::-webkit-scrollbar-track {
+        background: #f1f3f4;
+        border-radius: 3px;
+    }
+
+    pre::-webkit-scrollbar-thumb {
+        background: #c1c8cd;
+        border-radius: 3px;
+    }
+
+    pre::-webkit-scrollbar-thumb:hover {
+        background: #a8b3ba;
+    }
+
+    /* Sample input/output section styling */
+    .bg-light {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e9ecef !important;
+    }
+
+    .text-success {
+        color: #198754 !important;
+    }
+
+    .text-primary {
+        color: #0d6efd !important;
+    }
+
+    /* Submissions sidebar custom scrollbar */
+    .card-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .card-body::-webkit-scrollbar-track {
+        background: #f8f9fa;
+    }
+
+    .card-body::-webkit-scrollbar-thumb {
+        background: #dee2e6;
+        border-radius: 3px;
+    }
+
+    .card-body::-webkit-scrollbar-thumb:hover {
+        background: #adb5bd;
+    }
+
+    /* Custom badge colors */
+    .badge.bg-easy { background-color: #28a745 !important; }
+    .badge.bg-medium { background-color: #ffc107 !important; color: #212529 !important; }
+    .badge.bg-hard { background-color: #dc3545 !important; }
+
+    /* Code textarea styling */
+    #codeEditor {
+        resize: vertical;
+        min-height: 200px;
+    }
+
+    #codeEditor::placeholder {
+        color: #6c757d;
+        font-style: italic;
+    }
+    
+    /* AI Assistant Chat Styling */
+    #aiAssistantChatBox {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        margin-bottom: 10px;
+    }
+    
+    .chat-message {
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        border-radius: 10px;
+        max-width: 80%;
+        word-wrap: break-word;
+        line-height: 1.5;
+    }
+    
+    .chat-message.user {
+        background-color: #0d6efd;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 0;
+    }
+    
+    .chat-message.ai {
+        background-color: white;
+        color: #212529;
+        margin-right: auto;
+        border-bottom-left-radius: 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    #chatInput {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    #sendChatBtn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 {# Revert to container-fluid and add explicit horizontal padding (px-4 or px-5) and top margin (mt-4) #}
 <div class="container-fluid mt-4 px-lg-5 pb-5"> {# px-lg-5 applies padding at large breakpoints and above #}
+    <!-- Hidden problem data for JavaScript -->
+    <script type="application/json" id="problem-data">
+        {
+            "problemId": {{ problem.id }},
+            "problemName": "{{ problem.title|default:problem.name|escapejs }}"
+        }
+    </script>
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4">
@@ -66,8 +239,11 @@
                 </div>
                 <div class="card-body p-4">
                     {% if user.is_authenticated %}
-                        <form id="submissionForm" method="post" action="{% url 'submissions:submit_code' problem.id %}">
+                        <form id="submissionForm" method="post" action="{% url 'submissions:submit_code' problem.id %}" enctype="multipart/form-data">
                             {% csrf_token %}
+                            <!-- Hidden inputs to ensure form submission works -->
+                            <input type="hidden" name="form_submitted" value="true">
+                            <input type="hidden" name="problem_id" value="{{ problem.id }}">
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label for="languageSelect" class="form-label fw-semibold">Language</label>
@@ -77,17 +253,17 @@
                                         <option value="java">Java</option>
                                     </select>
                                 </div>
-                                <div class="col-md-8 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-primary px-4">
+                                <div class="col-md-8 d-flex align-items-end gap-2">
+                                    <button type="submit" class="btn btn-primary px-4" id="submitButton">
                                         <i class="fas fa-paper-plane me-2"></i>Submit Code
                                     </button>
                                 </div>
                             </div>
                             <div class="mt-3">
-                                    <label for="codeEditor" class="form-label fw-semibold">Your Code</label>
-                                    <textarea class="form-control border" id="codeEditor" name="code" rows="25" 
-                                            placeholder="Write your solution here..." required
-                                            style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 18px; line-height: 1.5;"></textarea>
+                                <label for="codeEditor" class="form-label fw-semibold">Your Code</label>
+                                <textarea class="form-control border" id="codeEditor" name="code" rows="25" 
+                                        placeholder="Write your solution here..." required
+                                        style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 18px; line-height: 1.5;"></textarea>
                             </div>
 
                             <!-- Custom Input Section -->
@@ -127,6 +303,30 @@
                     {% endif %}
                 </div>
             </div>
+
+            {# NEW AI ASSISTANT CARD #}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h4 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-robot me-2 text-info"></i>AI Assistant
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div id="aiAssistantChatBox">
+                        <div class="chat-message ai">Hello! I'm your AI Assistant. How can I help you with this problem today?</div>
+                    </div>
+                    <div class="input-group mt-3">
+                        <input type="text" id="chatInput" class="form-control" placeholder="Ask me anything about the problem...">
+                        <button class="btn btn-primary" id="sendChatBtn">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                    </div>
+                    <div id="chatLoadingIndicator" class="text-muted text-center mt-2" style="display: none;">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Thinking...
+                    </div>
+                </div>
+            </div>
+            {# END NEW AI ASSISTANT CARD #}
         </div>
 
         <div class="col-lg-4">
@@ -200,14 +400,130 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script>
-console.log('Script starting...');
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js?v=20240713"></script> {# For C++ and Java #}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js?v=20240713"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js?v=20240713"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css?v=20240713">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css?v=20240713">
+
+<script>
 // Wait for DOM to be ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded');
     
-    // Get the run button
+    // DEBUG - Add global form error handler to catch issues
+    window.addEventListener('error', function(event) {
+        console.error('Global error caught:', event.error);
+    });
+    
+    // Get problem data
+    const problemData = JSON.parse(document.getElementById('problem-data').textContent);
+    const problemId = problemData.problemId;
+    const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
+    
+    // Initialize CodeMirror first - IMPORTANT: This must be initialized before form handlers
+    let editor;
+    try {
+        editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
+            lineNumbers: true,
+            mode: "python", // Default mode
+            theme: "material-darker",
+            indentUnit: 4,
+            smartIndent: true,
+            lineWrapping: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            styleActiveLine: true
+        });
+        
+        // Make editor globally available
+        window.editor = editor;
+        console.log('CodeMirror initialized successfully');
+    } catch (error) {
+        console.error('Error initializing CodeMirror:', error);
+        console.log('CodeMirror not available, using standard textarea');
+    }
+
+    // Language change handler
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect && window.editor) {
+        languageSelect.addEventListener('change', function() {
+            console.log('Language changed to:', this.value);
+            var mode = this.value === 'python' ? 'python' : (this.value === 'cpp' ? 'text/x-c++src' : 'text/x-java');
+            window.editor.setOption('mode', mode);
+            console.log('CodeMirror mode set to:', mode);
+        });
+    }
+
+    // Handle form submission - DIRECT SUBMIT IMPLEMENTATION
+    const submissionForm = document.getElementById('submissionForm');
+    const submitButton = document.getElementById('submitButton');
+    
+    if (submissionForm && submitButton) {
+        console.log('Setting up direct submit button handler');
+        
+        // DIRECT CLICK HANDLER FOR SUBMIT BUTTON - bypasses event listener issues
+        submitButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default button behavior
+            console.log('Submit button clicked directly');
+            
+            // IMPORTANT: Ensure CodeMirror content is synced with the textarea before submitting
+            if (window.editor) {
+                window.editor.save(); // This updates the textarea with the current editor content
+                console.log('CodeMirror content saved to textarea:', document.getElementById('codeEditor').value);
+            }
+            
+            // Visual feedback
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+            
+            // Force submit the form programmatically
+            console.log('Forcing form submission programmatically');
+            setTimeout(function() {
+                submissionForm.submit();
+            }, 100); // Small delay to ensure UI updates
+        });
+        
+        console.log('Direct submit button handler attached');
+    } else {
+        console.error('Submission form or button not found!');
+    }
+    
+    // Add backup submit button handler
+    const backupSubmitButton = document.getElementById('backupSubmitButton');
+    if (backupSubmitButton && submissionForm) {
+        console.log('Setting up backup submit button handler');
+        backupSubmitButton.addEventListener('click', function() {
+            console.log('Backup submit button clicked');
+            
+            // Make sure CodeMirror content is synced
+            if (window.editor) {
+                window.editor.save();
+                console.log('CodeMirror content saved to textarea:', document.getElementById('codeEditor').value);
+            }
+            
+            // Visual feedback
+            backupSubmitButton.disabled = true;
+            backupSubmitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+            submitButton.disabled = true; // Disable primary button too
+            
+            // Force submit
+            console.log('Backup button forcing form submission');
+            submissionForm.submit();
+        });
+    }
+    
+    // Custom Run Button functionality
     const runButton = document.querySelector('#runCustomInput');
     console.log('Run button found:', runButton);
     
@@ -216,12 +532,23 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Run button clicked!');
             
             // Get the values
-            const code = document.querySelector('#codeEditor').value;
+            const code = window.editor ? window.editor.getValue() : document.querySelector('#codeEditor').value;
             const input = document.querySelector('#customInput').value;
             const language = document.querySelector('#languageSelect').value;
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
             
             console.log('Sending request with:', {language, inputLength: input.length});
+            
+            // Show loading state
+            const outputSection = document.querySelector('#customOutputSection');
+            const output = document.querySelector('#customOutput');
+            const details = document.querySelector('#executionDetails');
+            
+            outputSection.style.display = 'block';
+            output.textContent = 'Running code...';
+            if (details) {
+                details.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div> <span class="ms-2">Executing your code...</span>';
+            }
             
             // Make the request
             fetch("{% url 'problems:test_custom_input' %}", {
@@ -250,18 +577,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 output.textContent = data.stdout || data.stderr || 'No output';
                 
                 if (details) {
+                    // Safely handle potential null/undefined values
+                    const verdict = data.verdict ? data.verdict.toUpperCase() : 'UNKNOWN';
+                    const executionTime = data.execution_time || 0;
+                    const memoryUsed = data.memory_used || 0;
+                    
                     details.innerHTML = `
                         <span class="badge ${data.verdict === 'success' ? 'bg-success' : 'bg-danger'} me-2">
-                            ${data.verdict.toUpperCase()}
+                            ${verdict}
                         </span>
-                        <span class="me-3">Time: ${data.execution_time.toFixed(2)}s</span>
-                        <span>Memory: ${data.memory_used.toFixed(2)}MB</span>
+                        <span class="me-3">Time: ${executionTime.toFixed(2)}s</span>
+                        <span>Memory: ${memoryUsed.toFixed(2)}MB</span>
                     `;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error running code: ' + error.message);
+                const errorMessage = 'Error running code: ' + error.message;
+                const outputSection = document.querySelector('#customOutputSection');
+                const output = document.querySelector('#customOutput');
+                
+                outputSection.style.display = 'block';
+                output.textContent = errorMessage;
+                
+                const details = document.querySelector('#executionDetails');
+                if (details) {
+                    details.innerHTML = `
+                        <span class="badge bg-danger me-2">ERROR</span>
+                        <span>Please check your code or try again later.</span>
+                    `;
+                }
             });
         });
         
@@ -269,293 +614,217 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.error('Run button not found in the document!');
     }
-});
-</script>
-<script id="problem-data" type="application/json">
-{
-    "problemId": {% if problem.id %}{{ problem.id }}{% else %}0{% endif %}
-}
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const submissionList = document.getElementById('userSubmissionsList');
-        const problemData = JSON.parse(document.getElementById('problem-data').textContent);
-        const problemId = problemData.problemId;
-        const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
-        const csrfToken = csrfTokenElement ? csrfTokenElement.value : '';
 
-        // Function to format verdict string from camelCase/snake_case to Title Case
-        function formatVerdictText(verdictString) {
-            return verdictString
-                .replace(/_/g, ' ') // Replace underscores with spaces
-                .split(' ')         // Split into words
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter of each word
-                .join(' ');         // Join back with spaces
+    // Function to format verdict string from camelCase/snake_case to Title Case
+    function formatVerdictText(verdictString) {
+        if (!verdictString) return 'Unknown'; // Handle null/undefined
+        return verdictString
+            .replace(/_/g, ' ') // Replace underscores with spaces
+            .split(' ')         // Split into words
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter of each word
+            .join(' ');         // Join back with spaces
+    }
+
+    // Function to fetch and update submission status
+    function updateSubmissionStatus(submissionId) {
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            return;
         }
 
-        // Function to fetch and update submission status
-        function updateSubmissionStatus(submissionId) {
-            if (!csrfToken) {
-                console.error('CSRF token not found');
-                return;
+        fetch('/submissions/api/status/' + submissionId + '/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
             }
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            const submissionItem = document.getElementById('submission-' + submissionId);
+            if (submissionItem) {
+                const statusBadge = submissionItem.querySelector('.badge[data-submission-status]');
+                const iconElement = submissionItem.querySelector('.fas'); // Assuming the icon is the first .fas
 
-            fetch('/submissions/api/status/' + submissionId + '/', {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('HTTP error! status: ' + response.status);
-                }
-                return response.json();
-            })
-            .then(function(data) {
-                const submissionItem = document.getElementById('submission-' + submissionId);
-                if (submissionItem) {
-                    const statusBadge = submissionItem.querySelector('.badge[data-submission-status]');
-                    if (statusBadge) {
-                        // Use the JavaScript helper function to format the verdict from API
-                        statusBadge.textContent = formatVerdictText(data.final_verdict);
-                        
-                        // Remove all status classes
-                        statusBadge.classList.remove('bg-secondary', 'bg-info', 'bg-warning', 'bg-danger', 'bg-success', 'text-dark');
-                        
-                        // Add appropriate status class
+                if (statusBadge) {
+                    statusBadge.textContent = formatVerdictText(data.final_verdict);
+                    
+                    // Update badge classes
+                    statusBadge.classList.remove('bg-secondary', 'bg-info', 'bg-warning', 'bg-danger', 'bg-success', 'text-dark');
+                    if (data.final_verdict === 'accepted') {
+                        statusBadge.classList.add('bg-success');
+                    } else if (['wrong_answer', 'runtime_error', 'compilation_error', 'judging_error'].includes(data.final_verdict)) {
+                        statusBadge.classList.add('bg-danger');
+                    } else if (['time_limit_exceeded', 'memory_limit_exceeded'].includes(data.final_verdict)) {
+                        statusBadge.classList.add('bg-warning', 'text-dark');
+                    } else {
+                        statusBadge.classList.add('bg-secondary');
+                    }
+                    
+                    statusBadge.dataset.submissionStatus = data.status; // Keep status attribute updated
+
+                    // Update icon classes
+                    if (iconElement) {
+                        iconElement.classList.remove('fa-check-circle', 'fa-times-circle', 'fa-clock', 'fa-circle-notch', 'text-success', 'text-danger', 'text-warning', 'text-secondary', 'fa-spin');
                         if (data.final_verdict === 'accepted') {
-                            statusBadge.classList.add('bg-success');
-                        } else if (['wrong_answer', 'runtime_error', 'compilation_error'].indexOf(data.final_verdict) !== -1) {
-                            statusBadge.classList.add('bg-danger');
-                        } else if (['time_limit_exceeded', 'memory_limit_exceeded'].indexOf(data.final_verdict) !== -1) {
-                            statusBadge.classList.add('bg-warning', 'text-dark');
+                            iconElement.classList.add('fas', 'fa-check-circle', 'text-success');
+                        } else if (['wrong_answer', 'runtime_error', 'compilation_error', 'judging_error'].includes(data.final_verdict)) {
+                            iconElement.classList.add('fas', 'fa-times-circle', 'text-danger');
+                        } else if (['time_limit_exceeded', 'memory_limit_exceeded'].includes(data.final_verdict)) {
+                            iconElement.classList.add('fas', 'fa-clock', 'text-warning');
                         } else {
-                            statusBadge.classList.add('bg-secondary');
-                        }
-                        
-                        statusBadge.dataset.submissionStatus = data.status;
-
-                        // Update detailed metrics if available
-                        const smallElement = submissionItem.querySelector('small');
-                        if (smallElement) {
-                            let metricsHtml = '';
-                            // Ensure default to 0 if null for passed_test_cases
-                            if (data.total_test_cases) {
-                                metricsHtml += `<i class="fas fa-vials me-1"></i>${data.passed_test_cases || 0}/${data.total_test_cases} tests`;
+                             // If still pending/processing, show spinner
+                            iconElement.classList.add('fas', 'fa-circle-notch', 'text-secondary');
+                            if (data.status !== 'finished') { // Only spin if not finished
+                                iconElement.classList.add('fa-spin');
                             }
-                            if (data.execution_time) {
-                                metricsHtml += `${metricsHtml ? '<span class="ms-2"></span>' : ''}<i class="fas fa-clock me-1"></i>${data.execution_time}s`;
-                            }
-                            smallElement.innerHTML = metricsHtml;
-                        }
-
-                        if (data.status === 'finished' || data.status === 'failed') { // Added 'failed' to stop polling
-                            console.log('Submission ' + submissionId + ' finished with verdict: ' + data.final_verdict);
-                        } else {
-                            // Continue polling if not finished
-                            setTimeout(function() { 
-                                updateSubmissionStatus(submissionId); 
-                            }, 3000);
                         }
                     }
-                }
-            })
-            .catch(function(error) {
-                console.error('Error fetching submission status:', error);
-                // Retry after a longer delay on error
-                setTimeout(function() { 
-                    updateSubmissionStatus(submissionId); 
-                }, 10000);
-            });
-        }
 
-        // Identify pending submissions on page load and start polling
-        const pendingSubmissions = document.querySelectorAll('.badge[data-submission-status="pending"], .badge[data-submission-status="processing"]');
-        for (let i = 0; i < pendingSubmissions.length; i++) {
-            const badge = pendingSubmissions[i];
-            const submissionItem = badge.closest('a[id^="submission-"]');
-            if (submissionItem) {
-                const submissionId = submissionItem.id.split('-')[1];
-                if (submissionId) {
-                    updateSubmissionStatus(submissionId);
+                    // Update detailed metrics if available
+                    const smallElement = submissionItem.querySelector('small');
+                    if (smallElement) {
+                        let metricsHtml = '';
+                        if (data.total_test_cases !== null && data.total_test_cases !== undefined) {
+                            metricsHtml += `<i class="fas fa-vials me-1"></i>${data.passed_test_cases || 0}/${data.total_test_cases} tests`;
+                        }
+                        if (data.execution_time !== null && data.execution_time !== undefined) {
+                            metricsHtml += `${metricsHtml ? '<span class="ms-2"></span>' : ''}<i class="fas fa-clock me-1"></i>${data.execution_time.toFixed(3)}s`;
+                        }
+                        if (data.memory_used !== null && data.memory_used !== undefined) {
+                            metricsHtml += `${metricsHtml ? '<span class="ms-2"></span>' : ''}<i class="fas fa-memory me-1"></i>${data.memory_used.toFixed(2)}MB`;
+                        }
+                        smallElement.innerHTML = metricsHtml;
+                    }
+
+                    if (data.status === 'finished' || data.status === 'failed') {
+                        console.log('Submission ' + submissionId + ' finished with verdict: ' + data.final_verdict);
+                    } else {
+                        // Continue polling if not finished
+                        setTimeout(function() { 
+                            updateSubmissionStatus(submissionId); 
+                        }, 3000); // Poll every 3 seconds
+                    }
                 }
             }
-        }
+        })
+        .catch(function(error) {
+            console.error('Error fetching submission status for ID ' + submissionId + ':', error);
+            // Retry after a longer delay on error
+            setTimeout(function() { 
+                updateSubmissionStatus(submissionId); 
+            }, 10000); // Retry after 10 seconds on error
+        });
+    }
 
-        // Handle form submission
-        const submissionForm = document.getElementById('submissionForm');
-        if (submissionForm) {
-            submissionForm.addEventListener('submit', function(e) {
-                const submitButton = submissionForm.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
-                    
-                    // Re-enable button after a delay to prevent accidental double submissions
-                    setTimeout(function() {
-                        submitButton.disabled = false;
-                        submitButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Code';
-                    }, 3000);
-                }
-            });
-        }
-
-        // Language change handler
-        document.getElementById('languageSelect').addEventListener('change', function() {
-            if (editor) {
-                var mode = this.value === 'python' ? 'python' : 'text/x-c++src';
-                editor.setOption('mode', mode);
+    // Identify pending submissions on page load and start polling
+    const pendingSubmissions = document.querySelectorAll('.badge[data-submission-status="pending"], .badge[data-submission-status="processing"]');
+    for (let i = 0; i < pendingSubmissions.length; i++) {
+        const badge = pendingSubmissions[i];
+        const submissionItem = badge.closest('a[id^="submission-"]');
+        if (submissionItem) {
+            const submissionId = submissionItem.id.split('-')[1];
+            if (submissionId) {
+                updateSubmissionStatus(submissionId);
             }
-        });
+        }
+    }
+    
+    // --- AI Assistant Logic ---
+    const chatInput = document.getElementById('chatInput');
+    const sendChatBtn = document.getElementById('sendChatBtn');
+    const aiAssistantChatBox = document.getElementById('aiAssistantChatBox');
+    const chatLoadingIndicator = document.getElementById('chatLoadingIndicator');
 
-        // Handle language change
-        document.getElementById('languageSelect').addEventListener('change', function() {
-            var mode = this.value === 'python' ? 'python' : 'text/x-c++src';
-            editor.setOption('mode', mode);
-        });
+    let chatHistory = []; // Stores the conversation history
 
-        // Initialize CodeMirror
-        let editor;
+    async function sendMessageToAI() {
+        const userMessage = chatInput.value.trim();
+        if (!userMessage) return;
+
+        // Display user message
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.className = 'chat-message user';
+        userMessageDiv.textContent = userMessage;
+        aiAssistantChatBox.appendChild(userMessageDiv);
+        chatInput.value = ''; // Clear input
+        aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight; // Scroll to bottom
+
+        // Add user message to chat history
+        chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
+        // Show loading indicator
+        chatLoadingIndicator.style.display = 'block';
+        aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight; // Scroll to bottom
+
         try {
-            editor = CodeMirror.fromTextArea(document.getElementById("codeEditor"), {
-                lineNumbers: true,
-                mode: "python",
-                theme: "material-darker",
-                indentUnit: 4,
-                smartIndent: true,
-                lineWrapping: true,
-                foldGutter: true,
-                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-                matchBrackets: true,
-                autoCloseBrackets: true,
-                styleActiveLine: true
+            // IMPORTANT: Use your actual API key here for local deployment.
+            const apiKey = "AIzaSyCUhEOQ6Z0YTuJZk_bB_2M7vfeI3LVKI5E"; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: chatHistory,
+                // You can add generationConfig here if you need specific response formats or safety settings
+                // generationConfig: {
+                //     temperature: 0.7,
+                //     topP: 0.95,
+                //     topK: 40,
+                //     maxOutputTokens: 1024,
+                // }
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
+
+            const result = await response.json();
+            
+            let aiResponseText = "Sorry, I couldn't get a response. Please try again.";
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                aiResponseText = result.candidates[0].content.parts[0].text;
+            } else if (result.error) {
+                aiResponseText = `Error: ${result.error.message}`;
+                console.error("Gemini API error:", result.error);
+            }
+
+            // Display AI response
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'chat-message ai';
+            // Use innerHTML to allow for basic formatting if the LLM returns it (e.g., newlines)
+            aiMessageDiv.innerHTML = aiResponseText.replace(/\n/g, '<br>'); 
+            aiAssistantChatBox.appendChild(aiMessageDiv);
+            aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight; // Scroll to bottom
+
+            // Add AI response to chat history
+            chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
+
         } catch (error) {
-            console.log('CodeMirror not available, using standard textarea');
+            console.error("Error communicating with Gemini API:", error);
+            const errorMessageDiv = document.createElement('div');
+            errorMessageDiv.className = 'chat-message ai';
+            errorMessageDiv.textContent = "An error occurred while fetching the response. Please check your internet connection or try again later.";
+            aiAssistantChatBox.appendChild(errorMessageDiv);
+            aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight;
+        } finally {
+            chatLoadingIndicator.style.display = 'none'; // Hide loading indicator
+        }
+    }
+
+    sendChatBtn.addEventListener('click', sendMessageToAI);
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessageToAI();
         }
     });
+});
 </script>
-
-<style>
-/* Modern styling enhancements */
-.card {
-    border-radius: 12px !important;
-    transition: all 0.2s ease;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
-}
-
-.badge {
-    font-weight: 500;
-    letter-spacing: 0.5px;
-}
-
-.form-control, .form-select {
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    transition: all 0.2s ease;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
-}
-
-.btn {
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-.list-group-item {
-    border-radius: 0 !important;
-    transition: all 0.2s ease;
-}
-
-.list-group-item:hover {
-    background-color: rgba(13, 110, 253, 0.05) !important;
-    border-left: 4px solid #0d6efd !important;
-}
-
-pre {
-    max-height: 150px;
-    overflow-y: auto;
-}
-
-pre::-webkit-scrollbar {
-    width: 6px;
-}
-
-pre::-webkit-scrollbar-track {
-    background: #f1f3f4;
-    border-radius: 3px;
-}
-
-pre::-webkit-scrollbar-thumb {
-    background: #c1c8cd;
-    border-radius: 3px;
-}
-
-pre::-webkit-scrollbar-thumb:hover {
-    background: #a8b3ba;
-}
-
-/* Sample input/output section styling */
-.bg-light {
-    background-color: #f8f9fa !important;
-    border: 1px solid #e9ecef !important;
-}
-
-.text-success {
-    color: #198754 !important;
-}
-
-.text-primary {
-    color: #0d6efd !important;
-}
-
-/* Submissions sidebar custom scrollbar */
-.card-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.card-body::-webkit-scrollbar-track {
-    background: #f8f9fa;
-}
-
-.card-body::-webkit-scrollbar-thumb {
-    background: #dee2e6;
-    border-radius: 3px;
-}
-
-.card-body::-webkit-scrollbar-thumb:hover {
-    background: #adb5bd;
-}
-
-/* Custom badge colors */
-.badge.bg-easy { background-color: #28a745 !important; }
-.badge.bg-medium { background-color: #ffc107 !important; color: #212529 !important; }
-.badge.bg-hard { background-color: #dc3545 !important; }
-
-/* Code textarea styling */
-#codeEditor {
-    resize: vertical;
-    min-height: 200px;
-}
-
-#codeEditor::placeholder {
-    color: #6c757d;
-    font-style: italic;
-}
-
-</style>
 {% endblock %}
