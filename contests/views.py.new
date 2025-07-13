@@ -14,7 +14,6 @@ from django.conf import settings # Needed if you access settings like AUTH_USER_
 from problems.models import Problem
 from problems.views import ProblemSetterRequiredMixin
 
-# --- NEW VIEW: CreateContestView ---
 class CreateContestView(ProblemSetterRequiredMixin, View):
     """
     View for creating a new contest
@@ -44,7 +43,6 @@ class CreateContestView(ProblemSetterRequiredMixin, View):
         })
 
 
-# --- NEW VIEW: EditContestView ---
 class EditContestView(ProblemSetterRequiredMixin, View):
     """
     View for editing contest details
@@ -52,11 +50,11 @@ class EditContestView(ProblemSetterRequiredMixin, View):
     def get(self, request, pk):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # Check if user is the creator or an admin
+        # Check if user is creator or admin
         if contest.created_by != request.user and request.user.role != 'admin':
-            messages.error(request, "You can only edit contests that you created.")
-            return redirect('contests:detail', pk=contest.pk)
-        
+            messages.error(request, "You don't have permission to edit this contest.")
+            return redirect('contests:detail', pk=contest.id)
+            
         form = ContestForm(instance=contest)
         
         return render(request, 'contests/edit.html', {
@@ -68,18 +66,17 @@ class EditContestView(ProblemSetterRequiredMixin, View):
     def post(self, request, pk):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # Check if user is the creator or an admin
+        # Check if user is creator or admin
         if contest.created_by != request.user and request.user.role != 'admin':
-            messages.error(request, "You can only edit contests that you created.")
-            return redirect('contests:detail', pk=contest.pk)
-        
+            messages.error(request, "You don't have permission to edit this contest.")
+            return redirect('contests:detail', pk=contest.id)
+            
         form = ContestForm(request.POST, instance=contest)
         
         if form.is_valid():
-            contest = form.save()
-            
+            form.save()
             messages.success(request, f"Contest '{contest.name}' updated successfully!")
-            return redirect('contests:detail', pk=contest.pk)
+            return redirect('contests:detail', pk=contest.id)
         
         return render(request, 'contests/edit.html', {
             'form': form,
@@ -88,7 +85,6 @@ class EditContestView(ProblemSetterRequiredMixin, View):
         })
 
 
-# --- NEW VIEW: EditContestProblemsView ---
 class EditContestProblemsView(ProblemSetterRequiredMixin, View):
     """
     View for editing the problems in a contest
@@ -96,43 +92,58 @@ class EditContestProblemsView(ProblemSetterRequiredMixin, View):
     def get(self, request, pk):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # Check if user is the creator or an admin
+        # Check if user is creator or admin
         if contest.created_by != request.user and request.user.role != 'admin':
-            messages.error(request, "You can only edit contests that you created.")
-            return redirect('contests:detail', pk=contest.pk)
+            messages.error(request, "You don't have permission to edit this contest.")
+            return redirect('contests:detail', pk=contest.id)
         
-        formset = ContestProblemFormSet(instance=contest)
+        # Get existing problems or initialize an empty formset
+        formset = ContestProblemFormSet(
+            queryset=ContestProblem.objects.filter(contest=contest).order_by('order_in_contest')
+        )
         
         return render(request, 'contests/edit_problems.html', {
-            'formset': formset,
             'contest': contest,
-            'title': f'Edit Contest Problems: {contest.name}'
+            'formset': formset,
+            'title': f'Edit Problems: {contest.name}'
         })
     
     def post(self, request, pk):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # Check if user is the creator or an admin
+        # Check if user is creator or admin
         if contest.created_by != request.user and request.user.role != 'admin':
-            messages.error(request, "You can only edit contests that you created.")
-            return redirect('contests:detail', pk=contest.pk)
+            messages.error(request, "You don't have permission to edit this contest.")
+            return redirect('contests:detail', pk=contest.id)
         
-        formset = ContestProblemFormSet(request.POST, instance=contest)
+        formset = ContestProblemFormSet(
+            request.POST,
+            queryset=ContestProblem.objects.filter(contest=contest)
+        )
         
         if formset.is_valid():
-            formset.save()
+            problems = formset.save(commit=False)
             
-            messages.success(request, f"Problems for contest '{contest.name}' updated successfully!")
-            return redirect('contests:detail', pk=contest.pk)
+            # Process problem assignments
+            for i, problem in enumerate(problems):
+                problem.contest = contest
+                problem.order_in_contest = i + 1  # Set ordering based on form order
+                problem.save()
+            
+            # Handle deletions
+            for obj in formset.deleted_objects:
+                obj.delete()
+            
+            messages.success(request, f"Problems for '{contest.name}' updated successfully!")
+            return redirect('contests:detail', pk=contest.id)
         
         return render(request, 'contests/edit_problems.html', {
-            'formset': formset,
             'contest': contest,
-            'title': f'Edit Contest Problems: {contest.name}'
+            'formset': formset,
+            'title': f'Edit Problems: {contest.name}'
         })
 
 
-# --- Existing Views (Keep these) ---
 class ContestListView(View):
     """
     Displays a list of all contests, with search and pagination.
@@ -149,7 +160,7 @@ class ContestListView(View):
 
         paginator = Paginator(contests_list, 9)
         page_number = request.GET.get('page')
-
+        
         try:
             contests = paginator.page(page_number)
         except PageNotAnInteger:
@@ -159,129 +170,132 @@ class ContestListView(View):
 
         context = {
             'contests': contests,
-            'is_paginated': contests.has_other_pages(),
-            'page_obj': contests,
             'query': query,
         }
-        return render(request, 'contests/contests.html', context)
+        return render(request, 'contests/list.html', context)
 
 
 class ContestDetailView(View):
     """
-    Displays details for a single contest.
+    Shows the details of a specific contest, its problems, and registration status.
     """
     def get(self, request, pk, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=pk)
-
-        is_participant = False
+        
+        # Get problems associated with this contest
+        problems = ContestProblem.objects.filter(contest=contest).order_by('order_in_contest')
+        
+        # Check if user is registered for this contest
+        is_registered = False
         if request.user.is_authenticated:
-            is_participant = contest.participants.filter(pk=request.user.pk).exists()
-
+            is_registered = contest.participants.filter(pk=request.user.pk).exists()
+        
         context = {
             'contest': contest,
-            'is_participant': is_participant,
+            'problems': problems,
+            'is_registered': is_registered,
+            'now': timezone.now(),  # For displaying time remaining
         }
-        return render(request, 'contests/contest_detail.html', context)
+        return render(request, 'contests/detail.html', context)
 
-# --- NEW Placeholder Views to resolve NoReverseMatch ---
 
-@method_decorator(login_required, name='dispatch') # Ensures user is logged in
 class ContestRegisterView(View):
     """
-    Handles user registration for a contest.
+    Handles registration for a contest
     """
+    @method_decorator(login_required)
     def post(self, request, pk, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # Check if contest is upcoming or active
-        if contest.is_upcoming() or contest.is_active():
-            # Add the current user to the participants ManyToMany field
-            if not contest.participants.filter(pk=request.user.pk).exists():
-                contest.participants.add(request.user)
-                messages.success(request, f"Successfully registered for {contest.name}!")
-            else:
-                messages.info(request, f"You are already registered for {contest.name}.")
+        # Check if registration is open
+        if not contest.is_registration_open():
+            messages.error(request, f"Registration for '{contest.name}' is closed.")
+            return redirect('contests:detail', pk=pk)
+        
+        # Check if user is already registered
+        if contest.participants.filter(pk=request.user.pk).exists():
+            messages.info(request, f"You are already registered for '{contest.name}'.")
         else:
-            messages.error(request, f"Cannot register for {contest.name}. It is not upcoming or active.")
+            # Register the user
+            contest.participants.add(request.user)
+            messages.success(request, f"You have successfully registered for '{contest.name}'.")
         
         return redirect('contests:detail', pk=pk)
 
 
 class ContestLeaderboardView(View):
     """
-    Displays the leaderboard for a specific contest.
+    Displays the leaderboard for a contest
     """
     def get(self, request, pk, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # Import necessary Django modules
-        from django.db.models import Count, Max, Q, Case, When, IntegerField
-        from django.db.models.functions import Coalesce
-        
-        # First, get a distinct list of problems solved by each participant
-        # This ensures we only count each problem once per user
-        distinct_solved_problems = ContestSubmission.objects.filter(
-            contest_problem__contest=contest,
-            final_verdict='accepted'
-        ).values(
-            'participant', 
-            'contest_problem__problem'
-        ).distinct()
-        
-        # Create a subquery to count distinct solved problems
-        from django.db.models import Subquery, OuterRef
-        
-        # Get all users who submitted at least one solution to this contest
-        user_submissions = ContestSubmission.objects.filter(
+        # Get all submissions for this contest
+        submissions = ContestSubmission.objects.filter(
             contest_problem__contest=contest
-        ).values(
-            'participant', 
-            'participant__username'
-        ).annotate(
-            # Count distinct problems solved by each user
-            problems_solved=Count(
-                'contest_problem__problem', 
-                filter=Q(final_verdict='accepted'), 
-                distinct=True
-            ),
-            total_count=Count('id'),
-            last_submission_time=Max('submitted_at')
-        ).order_by('-problems_solved', 'last_submission_time')
+        ).select_related('participant', 'contest_problem')
         
-        # Create a leaderboard list
+        # Aggregate data by user
         leaderboard_data = []
-        for entry in user_submissions:
+        user_data = {}
+        
+        for sub in submissions:
+            user_id = sub.participant.id
+            problem_id = sub.contest_problem.problem.id
+            
+            if user_id not in user_data:
+                user_data[user_id] = {
+                    'username': sub.participant.username,
+                    'solved_problems': set(),
+                    'total_count': 0,
+                    'last_submission_time': sub.submitted_at
+                }
+            
+            # Count solved problems
+            if sub.final_verdict == 'accepted':
+                user_data[user_id]['solved_problems'].add(problem_id)
+            
+            # Update total submission count
+            user_data[user_id]['total_count'] += 1
+            
+            # Update last submission time if this is more recent
+            if sub.submitted_at > user_data[user_id]['last_submission_time']:
+                user_data[user_id]['last_submission_time'] = sub.submitted_at
+        
+        # Convert to list for sorting
+        for user_id, entry in user_data.items():
             leaderboard_data.append({
-                'user': {
-                    'id': entry['participant'],
-                    'username': entry['participant__username']
-                },
-                'score': entry['problems_solved'],  # Changed from accepted_count to problems_solved
+                'username': entry['username'],
+                'problems_solved': len(entry['solved_problems']),
                 'total_submissions': entry['total_count'],
                 'last_submission_time': entry['last_submission_time']
             })
-
+        
+        # Sort by problems solved (desc), then by submission time (asc)
+        leaderboard_data.sort(
+            key=lambda x: (-x['problems_solved'], x['last_submission_time'])
+        )
+        
         context = {
             'contest': contest,
             'leaderboard_data': leaderboard_data,
         }
         return render(request, 'contests/contest_leaderboard.html', context)
-    
-    
-# --- NEW VIEW: ContestProblemSolveView ---
+
+
 @method_decorator(login_required, name='dispatch')
 class ContestProblemSolveView(View):
     """
     Displays the contest problem solving interface.
     Includes contest problems list, current problem statement, and submission area.
     """
-    def get(self, request, contest_pk, problem_pk=None, *args, **kwargs):
-        contest = get_object_or_404(Contest, pk=contest_pk)
+    def get(self, request, pk, problem_pk=None, *args, **kwargs):
+        contest = get_object_or_404(Contest, pk=pk)
 
         # Check if the user is a participant
         if not contest.participants.filter(pk=request.user.pk).exists():
             messages.warning(request, f"You must be registered for '{contest.name}' to access its problems.")
-            return redirect('contests:detail', pk=contest_pk)
+            return redirect('contests:detail', pk=pk)
         
         # Check if the contest is active
         if not contest.is_active():
@@ -290,7 +304,7 @@ class ContestProblemSolveView(View):
                 messages.info(request, f"'{contest.name}' has ended. You can review problems and your past submissions.")
             else: # Upcoming or Cancelled
                 messages.error(request, f"'{contest.name}' is not active yet. Please wait for the contest to start.")
-                return redirect('contests:detail', pk=contest_pk)
+                return redirect('contests:detail', pk=pk)
 
         # Get all problems for this contest, ordered by order_in_contest
         contest_problems = ContestProblem.objects.filter(contest=contest).order_by('order_in_contest')
@@ -303,7 +317,7 @@ class ContestProblemSolveView(View):
             if not ContestProblem.objects.filter(contest=contest, problem=current_problem).exists():
                 messages.error(request, "The requested problem is not part of this contest.")
                 # Redirect to the default solve page for the contest, which will load the first problem
-                return redirect('contests:solve_contest_problem_default', contest_pk=contest_pk) 
+                return redirect('contests:solve_contest_problem_default', pk=pk) 
         elif contest_problems.exists():
             # If no problem_pk, default to the first problem in the contest
             current_problem = contest_problems.first().problem
@@ -339,3 +353,46 @@ class ContestProblemSolveView(View):
             'now': timezone.now(), # Pass current time for timer calculation in template
         }
         return render(request, 'contests/contest_problem_solve.html', context)
+        
+    def post(self, request, pk, problem_pk, *args, **kwargs):
+        """
+        Handle code submission for a contest problem
+        """
+        contest = get_object_or_404(Contest, pk=pk)
+        problem = get_object_or_404(Problem, pk=problem_pk)
+        
+        # Verify the problem belongs to the contest
+        contest_problem = get_object_or_404(ContestProblem, contest=contest, problem=problem)
+        
+        # Check if the user is a participant
+        if not contest.participants.filter(pk=request.user.pk).exists():
+            messages.warning(request, f"You must be registered for '{contest.name}' to submit solutions.")
+            return redirect('contests:detail', pk=pk)
+        
+        # Check if the contest is active
+        if not contest.is_active():
+            messages.error(request, f"'{contest.name}' is not active. You cannot submit solutions at this time.")
+            return redirect('contests:detail', pk=pk)
+        
+        # Get submission data
+        code = request.POST.get('code', '')
+        language = request.POST.get('language', '')
+        
+        if not code or not language:
+            messages.error(request, "Please provide both code and language for your submission.")
+            return redirect('contests:solve_contest_problem', pk=pk, problem_pk=problem_pk)
+        
+        # Create a contest submission
+        submission = ContestSubmission.objects.create(
+            contest_problem=contest_problem,
+            participant=request.user,
+            code=code,
+            language=language,
+            # Status and final_verdict will be updated by the judging system
+            status='queued',
+            final_verdict='pending'
+        )
+        
+        # TODO: Send to judging queue
+        messages.success(request, "Your solution has been submitted and is being evaluated.")
+        return redirect('contests:solve_contest_problem', pk=pk, problem_pk=problem_pk)
