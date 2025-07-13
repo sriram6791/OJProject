@@ -16,13 +16,25 @@ from .forms import ProblemForm, TestCaseFormSet
 
 class ProblemSetterRequiredMixin(UserPassesTestMixin):
     """
-    Mixin that tests whether the user is a problem setter or admin
+    Mixin that tests whether the user is a problem setter or admin,
+    and if a problem setter, checks if they are authorized
     """
     def test_func(self):
-        return self.request.user.is_authenticated and self.request.user.role in ['problem_setter', 'admin']
+        # Always allow admin access
+        if self.request.user.is_authenticated and self.request.user.role == 'admin':
+            return True
+        
+        # For problem setters, check if they are authorized
+        if self.request.user.is_authenticated and self.request.user.role == 'problem_setter':
+            return self.request.user.is_authorized
+        
+        return False
     
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access this page. Only problem setters can create and edit problems.")
+        if self.request.user.is_authenticated and self.request.user.role == 'problem_setter' and not self.request.user.is_authorized:
+            messages.error(self.request, "You need to be authorized by an admin to create or edit problems. Please contact an administrator.")
+        else:
+            messages.error(self.request, "You do not have permission to access this page. Only authorized problem setters can create and edit problems.")
         return redirect('home')
 
 

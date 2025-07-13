@@ -201,6 +201,11 @@
                                 <li><a class="dropdown-item" href="{% url 'users:profile' %}"> 
                                     <i class="fas fa-user me-2"></i> My Profile 
                                 </a></li> 
+                                {% if user.role == 'admin' %}
+                                <li><a class="dropdown-item" href="{% url 'users:authorize_problem_setters' %}"> 
+                                    <i class="fas fa-user-check me-2"></i> Authorize Problem Setters
+                                </a></li>
+                                {% endif %}
                                 <li><hr class="dropdown-divider"></li> 
                                 <li><a class="dropdown-item" href="{% url 'users:logout' %}"> 
                                     <i class="fas fa-sign-out-alt me-2"></i> Logout 

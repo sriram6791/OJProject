@@ -25,6 +25,7 @@ class CustomUser(AbstractUser):
     )
     
     role = models.CharField(max_length=20,choices=ROLE_CHOICES,default='student')
+    is_authorized = models.BooleanField(default=False, help_text="Flag to determine if a problem setter is authorized to create problems")
     
     def __str__(self):
         return self.username

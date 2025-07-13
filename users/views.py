@@ -10,6 +10,10 @@ from django.contrib.auth.hashers import check_password # To verify password for 
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.views.generic import ListView
+from django.views import View
+from django.http import HttpResponseRedirect
 
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserProfileSerializer
 from .models import CustomUser # Import CustomUser
@@ -217,3 +221,46 @@ class UserProfileAPIView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Add this view for admin to authorize problem setters
+class AdminRequiredMixin(UserPassesTestMixin):
+    """
+    Mixin that tests whether the user is an admin
+    """
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.role == 'admin'
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access this page. This page is only accessible to administrators.")
+        return redirect('home')
+
+class AuthorizeProblemSettersView(AdminRequiredMixin, ListView):
+    """
+    View for admin to authorize problem setters
+    """
+    model = CustomUser
+    template_name = 'users/authorize_problem_setters.html'
+    context_object_name = 'problem_setters'
+    
+    def get_queryset(self):
+        # Only return users with the role of problem_setter
+        return CustomUser.objects.filter(role='problem_setter')
+    
+    def post(self, request, *args, **kwargs):
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        
+        if user_id and action in ['authorize', 'deauthorize']:
+            try:
+                user = CustomUser.objects.get(id=user_id, role='problem_setter')
+                if action == 'authorize':
+                    user.is_authorized = True
+                    messages.success(request, f'User {user.username} has been authorized as a problem setter.')
+                else:
+                    user.is_authorized = False
+                    messages.success(request, f'User {user.username} has been deauthorized as a problem setter.')
+                user.save()
+            except CustomUser.DoesNotExist:
+                messages.error(request, 'User not found or not a problem setter.')
+        
+        return HttpResponseRedirect(request.path_info)
