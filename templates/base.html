@@ -181,6 +181,15 @@
                             <i class="fas fa-trophy me-1"></i> Leaderboard 
                         </a> 
                     </li> 
+                    {% if user.is_authenticated %}
+                        {% if user.role == 'problem_setter' or user.role == 'admin' %}
+                        <li class="nav-item"> 
+                            <a class="nav-link" href="{% url 'creator:portal' %}"> 
+                                <i class="fas fa-pencil-alt me-1"></i> Creator Portal 
+                            </a> 
+                        </li> 
+                        {% endif %}
+                    {% endif %}
                 </ul> 
                 <ul class="navbar-nav"> 
                     {% if user.is_authenticated %} 

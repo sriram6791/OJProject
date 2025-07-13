@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', # For token authentication
     'corsheaders', # Django CORS Headers
     'contests',
+    'creator.apps.CreatorConfig',
 ]
 
 MIDDLEWARE = [

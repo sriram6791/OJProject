@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Contest Problems{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Edit Problems for: {{ contest.name }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {{ formset.management_form }}
+                        
+                        <div class="mb-4">
+                            <div id="problem-formset">
+                                {% for problem_form in formset %}
+                                    <div class="problem-form border rounded p-3 mb-3">
+                                        <h5>Problem #{{ forloop.counter }}</h5>
+                                        
+                                        {% for hidden_field in problem_form.hidden_fields %}
+                                            {{ hidden_field }}
+                                        {% endfor %}
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="{{ problem_form.problem.id_for_label }}" class="form-label">Problem</label>
+                                                {{ problem_form.problem }}
+                                                {% if problem_form.problem.errors %}
+                                                    <div class="invalid-feedback d-block">{{ problem_form.problem.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label for="{{ problem_form.points.id_for_label }}" class="form-label">Points</label>
+                                                {{ problem_form.points }}
+                                                {% if problem_form.points.errors %}
+                                                    <div class="invalid-feedback d-block">{{ problem_form.points.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-3 mb-3">
+                                                <label for="{{ problem_form.order_in_contest.id_for_label }}" class="form-label">Order</label>
+                                                {{ problem_form.order_in_contest }}
+                                                {% if problem_form.order_in_contest.errors %}
+                                                    <div class="invalid-feedback d-block">{{ problem_form.order_in_contest.errors }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        {% if problem_form.non_field_errors %}
+                                            <div class="alert alert-danger">{{ problem_form.non_field_errors }}</div>
+                                        {% endif %}
+                                        
+                                        {% if formset.can_delete %}
+                                            <div class="form-check mb-3">
+                                                {{ problem_form.DELETE }}
+                                                <label class="form-check-label text-danger" for="{{ problem_form.DELETE.id_for_label }}">
+                                                    Remove this problem from the contest
+                                                </label>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <button type="button" id="add-problem" class="btn btn-outline-primary">
+                                <i class="fas fa-plus"></i> Add Another Problem
+                            </button>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <div>
+                                <a href="{% url 'contests:edit' pk=contest.pk %}" class="btn btn-info me-md-2">
+                                    <i class="fas fa-edit me-1"></i> Edit Contest Details
+                                </a>
+                            </div>
+                            <div>
+                                <a href="{% url 'contests:detail' pk=contest.pk %}" class="btn btn-secondary me-md-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Save Problems</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const addButton = document.getElementById('add-problem');
+        const formsetContainer = document.getElementById('problem-formset');
+        const totalFormsInput = document.querySelector('[name$=TOTAL_FORMS]');
+        
+        // Get the template for a new form
+        const getNewForm = function(index) {
+            // Get the first form and clone it
+            const firstForm = formsetContainer.querySelector('.problem-form');
+            const newForm = firstForm.cloneNode(true);
+            
+            // Update all ids and names to use the new index
+            const formElements = newForm.querySelectorAll('input, textarea, select');
+            formElements.forEach(function(element) {
+                if (element.id) {
+                    element.id = element.id.replace('-0-', '-' + index + '-');
+                }
+                if (element.name) {
+                    element.name = element.name.replace('-0-', '-' + index + '-');
+                }
+                // Clear values for the new form
+                if (!element.type.includes('hidden') && !element.type.includes('checkbox')) {
+                    element.value = '';
+                }
+                if (element.type.includes('checkbox')) {
+                    element.checked = false;
+                }
+            });
+            
+            // Update label 'for' attributes
+            const labels = newForm.querySelectorAll('label');
+            labels.forEach(function(label) {
+                if (label.htmlFor) {
+                    label.htmlFor = label.htmlFor.replace('-0-', '-' + index + '-');
+                }
+            });
+            
+            // Update title
+            const title = newForm.querySelector('h5');
+            if (title) {
+                title.textContent = 'Problem #' + (index + 1);
+            }
+            
+            return newForm;
+        };
+        
+        // Add new form when button is clicked
+        addButton.addEventListener('click', function() {
+            const formCount = parseInt(totalFormsInput.value);
+            const newForm = getNewForm(formCount);
+            formsetContainer.appendChild(newForm);
+            totalFormsInput.value = formCount + 1;
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

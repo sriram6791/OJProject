@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Creator Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .creator-card {
+        transition: all 0.4s ease;
+        overflow: hidden;
+    }
+    
+    .creator-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 35px rgba(99, 102, 241, 0.2) !important;
+    }
+    
+    .creator-card i {
+        transition: all 0.5s ease;
+    }
+    
+    .creator-card:hover i {
+        transform: scale(1.1);
+    }
+    
+    .btn-creator {
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+    }
+    
+    .btn-creator:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--primary-dark) 0%, #7c3aed 100%);
+        z-index: -2;
+    }
+    
+    .btn-creator:before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+        transition: all 0.3s ease;
+        z-index: -1;
+    }
+    
+    .btn-creator:hover {
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    }
+    
+    .btn-creator:hover:before {
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5 position-relative">
+        <div class="position-relative">
+            <div class="position-absolute top-0 start-50 translate-middle-x" style="z-index: 0; opacity: 0.4;">
+                <i class="fas fa-code-branch text-primary" style="font-size: 6rem;"></i>
+            </div>
+            <h1 class="display-3 fw-bold position-relative" style="z-index: 1;">
+                <span class="text-gradient">Creator Portal</span>
+            </h1>
+        </div>
+        <p class="lead text-muted mt-3">Design challenges and competitions for the coding community</p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <span class="badge bg-primary rounded-pill px-3 py-2">
+                <i class="fas fa-code me-1"></i> Problem Setter
+            </span>
+            <span class="badge bg-secondary rounded-pill px-3 py-2">
+                <i class="fas fa-users me-1"></i> Contest Creator
+            </span>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center py-4">
+        <div class="col-lg-5 mb-5">
+            <div class="card h-100 shadow-lg border-0 rounded-4 creator-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                <div class="card-body text-center d-flex flex-column p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-laptop-code display-1 text-gradient"></i>
+                    </div>
+                    <h2 class="card-title fw-bold mb-3">Create Problem</h2>
+                    <p class="card-text flex-grow-1 lead mb-4">Design challenging programming problems with custom test cases, descriptions, and more.</p>
+                    <a href="{% url 'problems:create' %}" class="btn btn-creator btn-primary btn-lg py-3 px-5 mt-3">
+                        <i class="fas fa-plus-circle me-2"></i> Create Problem
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5 mb-5">
+            <div class="card h-100 shadow-lg border-0 rounded-4 creator-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);">
+                <div class="card-body text-center d-flex flex-column p-5">
+                    <div class="mb-4">
+                        <i class="fas fa-trophy display-1 text-gradient"></i>
+                    </div>
+                    <h2 class="card-title fw-bold mb-3">Create Contest</h2>
+                    <p class="card-text flex-grow-1 lead mb-4">Set up exciting coding competitions with selected problems, time limits, and leaderboards.</p>
+                    <a href="{% url 'contests:create' %}" class="btn btn-creator btn-primary btn-lg py-3 px-5 mt-3">
+                        <i class="fas fa-calendar-plus me-2"></i> Create Contest
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-sm rounded-4 bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="me-4">
+                            <i class="fas fa-lightbulb fa-2x text-warning"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1 fw-bold">Pro Tips for Problem Setters</h5>
+                            <p class="mb-0 text-muted">Create clear problem statements, design comprehensive test cases, and ensure problems have appropriate difficulty levels to engage participants.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <p class="text-muted">
+            <i class="fas fa-info-circle me-2"></i>
+            Need help? Visit our <a href="#" class="text-decoration-none">Problem Setter Documentation</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}

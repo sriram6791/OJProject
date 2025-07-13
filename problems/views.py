@@ -1,15 +1,129 @@
-from django.shortcuts import render,get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import Problem
+from .models import Problem, TestCase
 from submissions.models import Submission
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from judge_core.judge import evaluate_with_custom_input
 import json
+from django.views import View
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.urls import reverse_lazy, reverse
+from .forms import ProblemForm, TestCaseFormSet
 
 
-# Create your views here.
+class ProblemSetterRequiredMixin(UserPassesTestMixin):
+    """
+    Mixin that tests whether the user is a problem setter or admin
+    """
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.role in ['problem_setter', 'admin']
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access this page. Only problem setters can create and edit problems.")
+        return redirect('home')
+
+
+class CreateProblemView(ProblemSetterRequiredMixin, View):
+    """
+    View for creating a new problem
+    """
+    def get(self, request):
+        form = ProblemForm()
+        formset = TestCaseFormSet(prefix='testcases')
+        
+        return render(request, 'problems/create.html', {
+            'form': form,
+            'formset': formset,
+            'title': 'Create Problem'
+        })
+    
+    def post(self, request):
+        form = ProblemForm(request.POST)
+        formset = TestCaseFormSet(request.POST, prefix='testcases')
+        
+        print("Form valid:", form.is_valid())
+        print("Formset valid:", formset.is_valid())
+        
+        if not form.is_valid():
+            print("Form errors:", form.errors)
+        
+        if not formset.is_valid():
+            print("Formset errors:", formset.errors)
+        
+        if form.is_valid() and formset.is_valid():
+            problem = form.save(commit=False)
+            problem.created_by = request.user
+            problem.save()
+            
+            # Save test cases
+            instances = formset.save(commit=False)
+            for instance in instances:
+                instance.problem = problem
+                instance.save()
+            
+            # Delete marked test cases
+            for obj in formset.deleted_objects:
+                obj.delete()
+            
+            messages.success(request, f"Problem '{problem.name}' created successfully!")
+            return redirect('problems:detail', problem_id=problem.id)
+        
+        return render(request, 'problems/create.html', {
+            'form': form,
+            'formset': formset,
+            'title': 'Create Problem'
+        })
+
+
+class EditProblemView(ProblemSetterRequiredMixin, View):
+    """
+    View for editing an existing problem
+    """
+    def get(self, request, problem_id):
+        problem = get_object_or_404(Problem, id=problem_id)
+        
+        # Check if user is the creator or an admin
+        if problem.created_by != request.user and request.user.role != 'admin':
+            messages.error(request, "You can only edit problems that you created.")
+            return redirect('problems:detail', problem_id=problem.id)
+        
+        form = ProblemForm(instance=problem)
+        formset = TestCaseFormSet(instance=problem, prefix='testcases')
+        
+        return render(request, 'problems/edit.html', {
+            'form': form,
+            'formset': formset,
+            'problem': problem,
+            'title': f'Edit Problem: {problem.name}'
+        })
+    
+    def post(self, request, problem_id):
+        problem = get_object_or_404(Problem, id=problem_id)
+        
+        # Check if user is the creator or an admin
+        if problem.created_by != request.user and request.user.role != 'admin':
+            messages.error(request, "You can only edit problems that you created.")
+            return redirect('problems:detail', problem_id=problem.id)
+        
+        form = ProblemForm(request.POST, instance=problem)
+        formset = TestCaseFormSet(request.POST, instance=problem, prefix='testcases')
+        
+        if form.is_valid() and formset.is_valid():
+            problem = form.save()
+            formset.save()
+            
+            messages.success(request, f"Problem '{problem.name}' updated successfully!")
+            return redirect('problems:detail', problem_id=problem.id)
+        
+        return render(request, 'problems/edit.html', {
+            'form': form,
+            'formset': formset,
+            'problem': problem,
+            'title': f'Edit Problem: {problem.name}'
+        })
 
 def problem_list_view(request):
     problems = Problem.objects.all()

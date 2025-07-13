@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Problem{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Create New Problem</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'problems:create' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h4>Problem Details</h4>
+                            <hr>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-8 mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">Problem Name</label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.name.errors }}</div>
+                                    {% endif %}
+                                    <div class="form-text text-muted">Choose a clear, descriptive name</div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.difficulty.id_for_label }}" class="form-label fw-bold">Difficulty Level</label>
+                                    {{ form.difficulty }}
+                                    {% if form.difficulty.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.difficulty.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label for="{{ form.statement.id_for_label }}" class="form-label fw-bold">Problem Statement</label>
+                                    {{ form.statement }}
+                                    {% if form.statement.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.statement.errors }}</div>
+                                    {% endif %}
+                                    <div class="form-text text-muted">
+                                        Include a detailed description, input/output format, constraints, and examples.
+                                        You can use Markdown for formatting.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                
+                <div class="row mb-5">
+                    <div class="col-lg-12">
+                        <h3 class="mb-3">Test Cases</h3>
+                        <hr>
+                        <div class="form-text text-muted mb-3">Add test cases to verify solutions. At least one test case is required.</div>
+                    </div>
+                    
+                    {{ formset.management_form }}
+                    
+                    <div id="testcase-forms">
+                        {% for test_case_form in formset %}
+                            <div class="testcase-form mb-4 p-3 border rounded bg-light">
+                                <h5 class="mb-3">Test Case #{{ forloop.counter }}</h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ test_case_form.input_data.id_for_label }}" class="form-label fw-bold">Input</label>
+                                        {{ test_case_form.input_data }}
+                                        {% if test_case_form.input_data.errors %}
+                                            <div class="invalid-feedback d-block">{{ test_case_form.input_data.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ test_case_form.expected_output.id_for_label }}" class="form-label fw-bold">Expected Output</label>
+                                        {{ test_case_form.expected_output }}
+                                        {% if test_case_form.expected_output.errors %}
+                                            <div class="invalid-feedback d-block">{{ test_case_form.expected_output.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ test_case_form.order.id_for_label }}" class="form-label fw-bold">Order</label>
+                                        {{ test_case_form.order }}
+                                        {% if test_case_form.order.errors %}
+                                            <div class="invalid-feedback d-block">{{ test_case_form.order.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check mt-2">
+                                            {{ test_case_form.is_hidden }}
+                                            <label class="form-check-label" for="{{ test_case_form.is_hidden.id_for_label }}">
+                                                Hidden test case (not visible to users)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% for hidden_field in test_case_form.hidden_fields %}
+                                    {{ hidden_field }}
+                                {% endfor %}
+                                
+                                {% if formset.can_delete and not forloop.first %}
+                                    <div class="text-end">
+                                        <div class="form-check d-inline-block">
+                                            {{ test_case_form.DELETE }}
+                                            <label class="form-check-label text-danger" for="{{ test_case_form.DELETE.id_for_label }}">
+                                                Delete this test case
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="col-12 mb-4">
+                        <button type="button" id="add-testcase" class="btn btn-outline-primary">
+                            <i class="fas fa-plus me-2"></i>Add Another Test Case
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn btn-primary btn-lg px-5">
+                            <i class="fas fa-save me-2"></i>Save Problem
+                        </button>
+                        <a href="{% url 'creator:portal' %}" class="btn btn-outline-secondary btn-lg ms-2">Cancel</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const testcaseForms = document.getElementById('testcase-forms');
+    const addButton = document.getElementById('add-testcase');
+    const formCount = parseInt(document.querySelector('[name="testcases-TOTAL_FORMS"]').value);
+    
+    // Handle "Add Test Case" button
+    addButton.addEventListener('click', function() {
+        const totalForms = document.querySelector('[name="testcases-TOTAL_FORMS"]');
+        const currentCount = parseInt(totalForms.value);
+        const newForm = document.querySelector('.testcase-form').cloneNode(true);
+        
+        // Update form index in all attributes and element IDs
+        newForm.querySelectorAll('*').forEach(element => {
+            if (element.id) {
+                element.id = element.id.replace(/id_testcases-\d+/, `id_testcases-${currentCount}`);
+            }
+            if (element.name) {
+                element.name = element.name.replace(/testcases-\d+/, `testcases-${currentCount}`);
+            }
+            if (element.hasAttribute('for')) {
+                element.setAttribute('for', element.getAttribute('for').replace(/id_testcases-\d+/, `id_testcases-${currentCount}`));
+            }
+        });
+        
+        // Clear input values
+        newForm.querySelectorAll('input[type="text"], textarea').forEach(input => {
+            input.value = '';
+        });
+        
+        // Update heading
+        newForm.querySelector('h5').textContent = `Test Case #${currentCount + 1}`;
+        
+        // Add delete checkbox if it doesn't exist
+        if (!newForm.querySelector('[id$=DELETE]')) {
+            const lastRow = newForm.querySelector('.row:last-of-type').parentNode;
+            const deleteDiv = document.createElement('div');
+            deleteDiv.className = 'text-end';
+            deleteDiv.innerHTML = `
+                <div class="form-check d-inline-block">
+                    <input type="checkbox" name="testcases-${currentCount}-DELETE" id="id_testcases-${currentCount}-DELETE" class="form-check-input">
+                    <label class="form-check-label text-danger" for="id_testcases-${currentCount}-DELETE">
+                        Delete this test case
+                    </label>
+                </div>
+            `;
+            lastRow.appendChild(deleteDiv);
+        }
+        
+        // Append the new form
+        testcaseForms.appendChild(newForm);
+        
+        // Update form count
+        totalForms.value = currentCount + 1;
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}
