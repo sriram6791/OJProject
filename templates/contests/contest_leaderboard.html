@@ -2,20 +2,70 @@
 
 {% block title %}{{ contest.name }} Leaderboard - CodeArena{% endblock %}
 
+{% block extra_css %}
+<style>
+    .leaderboard-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .leaderboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+    
+    .text-gradient {
+        background: linear-gradient(135deg, #6a11cb, #2575fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+    }
+    
+    .table th {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .rank-cell {
+        font-size: 1.2rem;
+        font-weight: 700;
+        width: 60px;
+    }
+    
+    .medal-icon {
+        font-size: 1.4rem;
+    }
+    
+    .gold-medal {
+        color: #FFD700;
+    }
+    
+    .silver-medal {
+        color: #C0C0C0;
+    }
+    
+    .bronze-medal {
+        color: #CD7F32;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <h1 class="mb-4 text-gradient">
-        <i class="fas fa-medal me-2"></i> Leaderboard for {{ contest.name }}
+        <i class="fas fa-medal me-2"></i> Leaderboard: {{ contest.name }}
     </h1>
 
     <div class="card p-4 shadow-sm mb-4">
         <p><strong>Contest Status:</strong> 
-            {% if contest.status == 'upcoming' %}
-                <span class="badge bg-primary rounded-pill">{{ contest.status|title }}</span>
-            {% elif contest.status == 'active' %}
-                <span class="badge bg-success rounded-pill">{{ contest.status|title }}</span>
+            {% if contest.is_upcoming %}
+                <span class="badge bg-primary rounded-pill">Upcoming</span>
+            {% elif contest.is_active %}
+                <span class="badge bg-success rounded-pill">Active</span>
             {% else %}
-                <span class="badge bg-secondary rounded-pill">{{ contest.status|title }}</span>
+                <span class="badge bg-secondary rounded-pill">Ended</span>
             {% endif %}
         </p>
         <p><strong>Starts:</strong> {{ contest.start_time|date:"M d, Y H:i" }} IST</p>
@@ -26,35 +76,72 @@
     </div>
 
     {% if leaderboard_data %}
-        <div class="card shadow-sm">
+        <div class="card leaderboard-card">
+            <div class="card-header bg-white py-3">
+                <h4 class="card-title mb-0 text-gradient">
+                    <i class="fas fa-trophy me-2"></i> Contest Rankings
+                    <span class="badge bg-light text-secondary ms-2" data-bs-toggle="tooltip" data-bs-placement="right" title="Each problem is counted only once per participant, even if solved multiple times">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                </h4>
+            </div>
             <div class="card-body">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Participant</th>
-                            <th scope="col">Total Score</th>
-                            <th scope="col">Last Submission Time</th> {# You'll need to add this data to your view #}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in leaderboard_data %}
-                        <tr>
-                            <th scope="row">{{ forloop.counter }}</th>
-                            <td>{{ entry.user.username }}</td>
-                            <td>{{ entry.score }}</td>
-                            <td>{{ entry.last_submission_time|date:"H:i:s" }}</td> {# Example #}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Rank</th>
+                                <th scope="col">Participant</th>
+                                <th scope="col">Unique Problems Solved</th>
+                                <th scope="col">Total Submissions</th>
+                                <th scope="col">Last Submission</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in leaderboard_data %}
+                            <tr {% if forloop.counter <= 3 %}class="fw-bold"{% endif %}>
+                                <td class="text-center rank-cell">
+                                    {% if forloop.counter == 1 %}
+                                        <i class="fas fa-trophy medal-icon gold-medal" title="1st Place"></i>
+                                    {% elif forloop.counter == 2 %}
+                                        <i class="fas fa-medal medal-icon silver-medal" title="2nd Place"></i>
+                                    {% elif forloop.counter == 3 %}
+                                        <i class="fas fa-medal medal-icon bronze-medal" title="3rd Place"></i>
+                                    {% else %}
+                                        {{ forloop.counter }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ entry.user.username }}</td>
+                                <td>
+                                    <span class="badge bg-success rounded-pill px-3 py-2">{{ entry.score }}</span>
+                                </td>
+                                <td>{{ entry.total_submissions }}</td>
+                                <td>{{ entry.last_submission_time|date:"M d, H:i:s" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     {% else %}
-        <div class="alert alert-info text-center mt-4">
-            <i class="fas fa-exclamation-circle me-2"></i> Leaderboard is not available yet or no participants have submitted.
+        <div class="alert alert-info text-center mt-4 p-4">
+            <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
+            <h5>No Submissions Yet</h5>
+            <p class="mb-0">The leaderboard will be available once participants start submitting solutions.</p>
         </div>
     {% endif %}
-
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    });
+</script>
 {% endblock %}

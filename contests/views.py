@@ -93,15 +93,57 @@ class ContestLeaderboardView(View):
     def get(self, request, pk, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=pk)
         
-        # You'll need to fetch and process submission data here
-        # For now, just a placeholder.
-        leaderboard_data = [] # Example: [{'user': 'user1', 'score': 150}, ...]
+        # Import necessary Django modules
+        from django.db.models import Count, Max, Q, Case, When, IntegerField
+        from django.db.models.functions import Coalesce
+        
+        # First, get a distinct list of problems solved by each participant
+        # This ensures we only count each problem once per user
+        distinct_solved_problems = ContestSubmission.objects.filter(
+            contest_problem__contest=contest,
+            final_verdict='accepted'
+        ).values(
+            'participant', 
+            'contest_problem__problem'
+        ).distinct()
+        
+        # Create a subquery to count distinct solved problems
+        from django.db.models import Subquery, OuterRef
+        
+        # Get all users who submitted at least one solution to this contest
+        user_submissions = ContestSubmission.objects.filter(
+            contest_problem__contest=contest
+        ).values(
+            'participant', 
+            'participant__username'
+        ).annotate(
+            # Count distinct problems solved by each user
+            problems_solved=Count(
+                'contest_problem__problem', 
+                filter=Q(final_verdict='accepted'), 
+                distinct=True
+            ),
+            total_count=Count('id'),
+            last_submission_time=Max('submitted_at')
+        ).order_by('-problems_solved', 'last_submission_time')
+        
+        # Create a leaderboard list
+        leaderboard_data = []
+        for entry in user_submissions:
+            leaderboard_data.append({
+                'user': {
+                    'id': entry['participant'],
+                    'username': entry['participant__username']
+                },
+                'score': entry['problems_solved'],  # Changed from accepted_count to problems_solved
+                'total_submissions': entry['total_count'],
+                'last_submission_time': entry['last_submission_time']
+            })
 
         context = {
             'contest': contest,
             'leaderboard_data': leaderboard_data,
         }
-        # You'll create a contests/contest_leaderboard.html template next
         return render(request, 'contests/contest_leaderboard.html', context)
     
     
