@@ -595,24 +595,27 @@ def judge_python_fallback(code, input_data, time_limit, memory_limit_mb):
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
-                timeout=time_limit
+                text=True
             )
             
-            stdout, stderr = process.communicate(input=input_data, timeout=time_limit)
-            exit_code = process.returncode
-            
-            execution_time = 0.0  # Placeholder
-            memory_used = 0.0  # Placeholder
-            
-            if exit_code == 0:
-                verdict = "success"
-            else:
-                verdict = "runtime_error"
+            try:
+                stdout, stderr = process.communicate(input=input_data, timeout=time_limit)
+                exit_code = process.returncode
                 
-            return stdout, stderr, verdict, execution_time, memory_used
+                execution_time = 0.0  # Placeholder
+                memory_used = 0.0  # Placeholder
+                
+                if exit_code == 0:
+                    verdict = "success"
+                else:
+                    verdict = "runtime_error"
+                    
+                return stdout, stderr, verdict, execution_time, memory_used
+                
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+                return "", "Time Limit Exceeded", "time_limit_exceeded", time_limit, 0.0
             
-    except subprocess.TimeoutExpired:
-        return "", "Time Limit Exceeded", "time_limit_exceeded", time_limit, 0.0
     except Exception as e:
         return "", f"System Error: {str(e)}", "system_error", 0.0, 0.0
