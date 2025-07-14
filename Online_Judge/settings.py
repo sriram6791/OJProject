@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-n!dwdwbgol#w+4a$7zf&@%ybknqq71@iz!5+1rwxuyj%$77ny!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Allow all hosts for Docker deployment
 
 
 # Application definition
@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'leaderboard.apps.LeaderboardConfig',
     'submissions.apps.SubmissionsConfig',
     'rest_framework', # Django REST Framework
-    'rest_framework.authtoken', # For token authentication
+    'rest_framework.authtoken', # For token authentication (built into DRF)
     'corsheaders', # Django CORS Headers
     'contests',
     'creator.apps.CreatorConfig',
@@ -207,8 +207,8 @@ MESSAGE_TAGS = {
 
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0' # Redis as broker
-CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0' # Redis to store results
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0') # Redis as broker
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0') # Redis to store results
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

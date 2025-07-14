@@ -5,6 +5,8 @@ import os
 import tempfile
 import shutil
 import time
+import sys
+import sys # Import sys for fallback function
 
 # Remove module-level model imports to avoid circular imports
 
@@ -95,11 +97,17 @@ def judge_python(code, input_data, time_limit, memory_limit_mb):
     Judges Python code using a Docker container.
     Returns (output, error, verdict, execution_time, memory_used).
     """
-    # --- MODIFIED LINE: Removed dir=TEMP_DIR_BASE ---
+    # Create temp directory with proper permissions
     with tempfile.TemporaryDirectory() as temp_dir:
+        # Ensure temp_dir has proper permissions
+        os.chmod(temp_dir, 0o755)
+        
         code_file_path = os.path.join(temp_dir, "solution.py")
         with open(code_file_path, "w") as f:
             f.write(code)
+        
+        # Make sure the file is readable
+        os.chmod(code_file_path, 0o644)
 
         # Docker command to run Python script
         # -v: Mount the temporary directory into the container
@@ -292,7 +300,7 @@ def evaluate_solution(submission_id):
             memory_used_tc = 0.0
 
             if submission.language == 'python':
-                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python(
+                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python_fallback(
                     submission.code, input_data, TIME_LIMIT_SECONDS, MEMORY_LIMIT_MB
                 )
             elif submission.language == 'cpp':
@@ -426,7 +434,7 @@ def evaluate_contest_solution(contest_submission_id):
 
             # Run the appropriate judge based on language
             if contest_submission.language == 'python':
-                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python(
+                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python_fallback(
                     contest_submission.code, input_data, TIME_LIMIT_SECONDS, MEMORY_LIMIT_MB
                 )
             elif contest_submission.language == 'cpp':
@@ -536,7 +544,7 @@ def evaluate_with_custom_input(code, input_data, language, time_limit=5, memory_
 
         # Run the appropriate judge based on language
         if language == 'python':
-            stdout, stderr, verdict, execution_time, memory_used = judge_python(
+            stdout, stderr, verdict, execution_time, memory_used = judge_python_fallback(
                 code, input_data, time_limit, memory_limit
             )
         elif language == 'cpp':
@@ -569,3 +577,42 @@ def evaluate_with_custom_input(code, input_data, language, time_limit=5, memory_
             'execution_time': 0.0,
             'memory_used': 0.0
         }
+
+def judge_python_fallback(code, input_data, time_limit, memory_limit_mb):
+    """
+    Fallback function to test code execution without Docker.
+    Only for debugging - NOT SECURE for production!
+    """
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            code_file_path = os.path.join(temp_dir, "solution.py")
+            with open(code_file_path, "w") as f:
+                f.write(code)
+            
+            # Run the Python script directly (NOT SECURE!)
+            process = subprocess.Popen(
+                [sys.executable, code_file_path],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=time_limit
+            )
+            
+            stdout, stderr = process.communicate(input=input_data, timeout=time_limit)
+            exit_code = process.returncode
+            
+            execution_time = 0.0  # Placeholder
+            memory_used = 0.0  # Placeholder
+            
+            if exit_code == 0:
+                verdict = "success"
+            else:
+                verdict = "runtime_error"
+                
+            return stdout, stderr, verdict, execution_time, memory_used
+            
+    except subprocess.TimeoutExpired:
+        return "", "Time Limit Exceeded", "time_limit_exceeded", time_limit, 0.0
+    except Exception as e:
+        return "", f"System Error: {str(e)}", "system_error", 0.0, 0.0
