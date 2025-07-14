@@ -20,6 +20,11 @@ class CreateContestView(ProblemSetterRequiredMixin, View):
     View for creating a new contest
     """
     def get(self, request):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to create contests. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         form = ContestForm()
         
         return render(request, 'contests/create.html', {
@@ -28,6 +33,11 @@ class CreateContestView(ProblemSetterRequiredMixin, View):
         })
     
     def post(self, request):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to create contests. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         form = ContestForm(request.POST)
         
         if form.is_valid():
@@ -50,6 +60,11 @@ class EditContestView(ProblemSetterRequiredMixin, View):
     View for editing contest details
     """
     def get(self, request, pk):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to edit contests. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         contest = get_object_or_404(Contest, pk=pk)
         
         # Check if user is the creator or an admin
@@ -66,6 +81,11 @@ class EditContestView(ProblemSetterRequiredMixin, View):
         })
     
     def post(self, request, pk):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to edit contests. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         contest = get_object_or_404(Contest, pk=pk)
         
         # Check if user is the creator or an admin
@@ -94,6 +114,11 @@ class EditContestProblemsView(ProblemSetterRequiredMixin, View):
     View for editing the problems in a contest
     """
     def get(self, request, pk):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to edit contest problems. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         contest = get_object_or_404(Contest, pk=pk)
         
         # Check if user is the creator or an admin
@@ -110,6 +135,11 @@ class EditContestProblemsView(ProblemSetterRequiredMixin, View):
         })
     
     def post(self, request, pk):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to edit contest problems. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         contest = get_object_or_404(Contest, pk=pk)
         
         # Check if user is the creator or an admin
@@ -138,6 +168,9 @@ class ContestListView(View):
     Displays a list of all contests, with search and pagination.
     """
     def get(self, request, *args, **kwargs):
+        # Update the status of all contests
+        Contest.update_all_statuses()
+        
         contests_list = Contest.objects.all()
 
         query = request.GET.get('q')
@@ -172,6 +205,10 @@ class ContestDetailView(View):
     """
     def get(self, request, pk, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=pk)
+        
+        # Update the contest status based on current time
+        contest.update_status()
+        contest.save()
 
         is_participant = False
         if request.user.is_authenticated:
@@ -193,8 +230,12 @@ class ContestRegisterView(View):
     def post(self, request, pk, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=pk)
         
+        # Update the contest status first
+        contest.update_status()
+        contest.save()
+        
         # Check if contest is upcoming or active
-        if contest.is_upcoming() or contest.is_active():
+        if contest.status in ['upcoming', 'active']:
             # Add the current user to the participants ManyToMany field
             if not contest.participants.filter(pk=request.user.pk).exists():
                 contest.participants.add(request.user)
@@ -277,6 +318,10 @@ class ContestProblemSolveView(View):
     """
     def get(self, request, contest_pk, problem_pk=None, *args, **kwargs):
         contest = get_object_or_404(Contest, pk=contest_pk)
+        
+        # Update the contest status first
+        contest.update_status()
+        contest.save()
 
         # Check if the user is a participant
         if not contest.participants.filter(pk=request.user.pk).exists():
@@ -284,9 +329,9 @@ class ContestProblemSolveView(View):
             return redirect('contests:detail', pk=contest_pk)
         
         # Check if the contest is active
-        if not contest.is_active():
+        if contest.status != 'active':
             # If contest is not active, but has ended, allow viewing problems/submissions
-            if contest.is_ended():
+            if contest.status == 'ended':
                 messages.info(request, f"'{contest.name}' has ended. You can review problems and your past submissions.")
             else: # Upcoming or Cancelled
                 messages.error(request, f"'{contest.name}' is not active yet. Please wait for the contest to start.")

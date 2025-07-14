@@ -37,7 +37,7 @@
         {% endif %}
 
         <div class="mt-4">
-            {% if contest.is_active %}
+            {% if contest.status == 'active' %}
                 {% if request.user.is_authenticated and not is_participant %}
                     <form action="{% url 'contests:register_for_contest' contest.id %}" method="post">
                         {% csrf_token %}
@@ -51,7 +51,7 @@
                     <p class="text-muted">Login to register for this contest.</p>
                     <a href="{% url 'users:login' %}?next={{ request.path }}" class="btn btn-outline-primary">Login</a>
                 {% endif %}
-            {% elif contest.is_upcoming %}
+            {% elif contest.status == 'upcoming' %}
                 {% if request.user.is_authenticated and not is_participant %}
                     <form action="{% url 'contests:register_for_contest' contest.id %}" method="post">
                         {% csrf_token %}

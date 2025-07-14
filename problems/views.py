@@ -16,25 +16,13 @@ from .forms import ProblemForm, TestCaseFormSet
 
 class ProblemSetterRequiredMixin(UserPassesTestMixin):
     """
-    Mixin that tests whether the user is a problem setter or admin,
-    and if a problem setter, checks if they are authorized
+    Mixin that tests whether the user is a problem setter or admin
     """
     def test_func(self):
-        # Always allow admin access
-        if self.request.user.is_authenticated and self.request.user.role == 'admin':
-            return True
-        
-        # For problem setters, check if they are authorized
-        if self.request.user.is_authenticated and self.request.user.role == 'problem_setter':
-            return self.request.user.is_authorized
-        
-        return False
+        return self.request.user.is_authenticated and self.request.user.role in ['problem_setter', 'admin']
     
     def handle_no_permission(self):
-        if self.request.user.is_authenticated and self.request.user.role == 'problem_setter' and not self.request.user.is_authorized:
-            messages.error(self.request, "You need to be authorized by an admin to create or edit problems. Please contact an administrator.")
-        else:
-            messages.error(self.request, "You do not have permission to access this page. Only authorized problem setters can create and edit problems.")
+        messages.error(self.request, "You do not have permission to access this page. Only problem setters can create and edit problems.")
         return redirect('home')
 
 
@@ -43,6 +31,11 @@ class CreateProblemView(ProblemSetterRequiredMixin, View):
     View for creating a new problem
     """
     def get(self, request):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to create problems. Please contact an administrator.")
+            return redirect('creator:portal')
+        
         form = ProblemForm()
         formset = TestCaseFormSet(prefix='testcases')
         
@@ -53,6 +46,11 @@ class CreateProblemView(ProblemSetterRequiredMixin, View):
         })
     
     def post(self, request):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to create problems. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         form = ProblemForm(request.POST)
         formset = TestCaseFormSet(request.POST, prefix='testcases')
         
@@ -95,6 +93,11 @@ class EditProblemView(ProblemSetterRequiredMixin, View):
     View for editing an existing problem
     """
     def get(self, request, problem_id):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to edit problems. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         problem = get_object_or_404(Problem, id=problem_id)
         
         # Check if user is the creator or an admin
@@ -113,6 +116,11 @@ class EditProblemView(ProblemSetterRequiredMixin, View):
         })
     
     def post(self, request, problem_id):
+        # Check if the user is a problem setter and is authorized
+        if request.user.role == 'problem_setter' and not request.user.is_authorized:
+            messages.warning(request, "You need to be authorized by an admin to edit problems. Please contact an administrator.")
+            return redirect('creator:portal')
+            
         problem = get_object_or_404(Problem, id=problem_id)
         
         # Check if user is the creator or an admin

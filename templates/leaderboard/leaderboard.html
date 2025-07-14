@@ -12,25 +12,8 @@
     </div>
 
     {% if top_users %}
-        <div class="row justify-content-center align-items-end mb-5 g-4">
-
-            <div class="col-lg-5 col-md-6 order-md-2">
-                <div class="podium-card rank-1 text-center h-100">
-                     <div class="podium-rank-badge">
-                        <i class="fas fa-crown"></i> 1
-                    </div>
-                    <div class="podium-avatar mx-auto">
-                        {{ top_users.0.username.0|upper }}
-                    </div>
-                    <h5 class="fw-bold mt-3 mb-1">{{ top_users.0.username }}</h5>
-                    {% if top_users.0.first_name or top_users.0.last_name %}
-                        <p class="text-muted mb-3"><small>{{ top_users.0.first_name }} {{ top_users.0.last_name }}</small></p>
-                    {% endif %}
-                    <div class="podium-score">{{ top_users.0.solved_problems_count|default:0 }}</div>
-                    <p class="text-muted">Problems Solved</p>
-                </div>
-            </div>
-
+        <div class="row podium-row justify-content-center align-items-end mb-5 g-4">
+            
             {% if top_users|length > 1 %}
             <div class="col-lg-3 col-md-6 order-md-1">
                 <div class="podium-card rank-2 text-center h-100">
@@ -47,8 +30,27 @@
                     <div class="podium-score">{{ top_users.1.solved_problems_count|default:0 }}</div>
                     <p class="text-muted">Problems Solved</p>
                 </div>
+                <div class="podium-platform platform-2"></div>
             </div>
             {% endif %}
+
+            <div class="col-lg-5 col-md-6 order-md-2">
+                <div class="podium-card rank-1 text-center h-100">
+                     <div class="podium-rank-badge">
+                        <i class="fas fa-crown"></i> 1
+                    </div>
+                    <div class="podium-avatar mx-auto">
+                        {{ top_users.0.username.0|upper }}
+                    </div>
+                    <h5 class="fw-bold mt-3 mb-1">{{ top_users.0.username }}</h5>
+                    {% if top_users.0.first_name or top_users.0.last_name %}
+                        <p class="text-muted mb-3"><small>{{ top_users.0.first_name }} {{ top_users.0.last_name }}</small></p>
+                    {% endif %}
+                    <div class="podium-score">{{ top_users.0.solved_problems_count|default:0 }}</div>
+                    <p class="text-muted">Problems Solved</p>
+                </div>
+                <div class="podium-platform platform-1"></div>
+            </div>
 
             {% if top_users|length > 2 %}
             <div class="col-lg-3 col-md-6 order-md-3">
@@ -66,6 +68,7 @@
                     <div class="podium-score">{{ top_users.2.solved_problems_count|default:0 }}</div>
                     <p class="text-muted">Problems Solved</p>
                 </div>
+                <div class="podium-platform platform-3"></div>
             </div>
             {% endif %}
         </div>
@@ -121,7 +124,15 @@
     .text-gradient {
         background: -webkit-linear-gradient(135deg, #6366f1, #8b5cf6);
         -webkit-background-clip: text;
+        background-clip: text;
         -webkit-text-fill-color: transparent;
+    }
+
+    /* Enhanced Podium Styles */
+    .row.podium-row {
+        display: flex;
+        align-items: flex-end;
+        margin-bottom: 2.5rem;
     }
 
     .podium-card {
@@ -133,6 +144,7 @@
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
+        height: 100%;
     }
 
     .podium-card:hover {
@@ -140,8 +152,18 @@
         box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.1);
     }
     
-    .rank-1:hover {
-        transform: scale(1.05) translateY(-8px);
+    /* Make 1st place more attractive */
+    .podium-card.rank-1 { 
+        border-color: #ffc107;
+        padding: 2.5rem;
+        margin-top: -30px; /* Move it up a bit */
+        z-index: 2;
+    }
+    
+    .podium-card.rank-2, 
+    .podium-card.rank-3 {
+        padding: 1.75rem;
+        z-index: 1;
     }
 
     .podium-card::before {
@@ -153,54 +175,97 @@
         height: 5px;
     }
     
-    .podium-card.rank-1 { 
-        border-color: #ffc107; 
-        transform: scale(1.05); /* Make 1st place bigger */
-    }
     .podium-card.rank-1::before { background-color: #ffc107; }
-
-    .podium-card.rank-2 { border-color: #adb5bd; }
     .podium-card.rank-2::before { background-color: #adb5bd; }
-
-    .podium-card.rank-3 { border-color: #cd7f32; }
     .podium-card.rank-3::before { background-color: #cd7f32; }
 
     .podium-rank-badge {
         position: absolute;
         top: 1rem;
         right: 1rem;
-        font-size: 1.2rem;
         font-weight: bold;
         opacity: 0.7;
     }
     
-    .rank-1 .podium-rank-badge { font-size: 2.6rem; color: #ffc107; }
+    .rank-1 .podium-rank-badge { 
+        font-size: 2rem; 
+        color: #ffc107; 
+    }
+    
+    .rank-2 .podium-rank-badge, 
+    .rank-3 .podium-rank-badge { 
+        font-size: 1.4rem;
+    }
+    
     .rank-2 .podium-rank-badge { color: #5c6770; }
     .rank-3 .podium-rank-badge { color: #cd7f32; }
 
-
+    /* Avatar sizes consistent for each position */
     .podium-avatar {
-        width: 80px;
-        height: 80px;
         border-radius: 50%;
         background: linear-gradient(135deg, #6366f1, #8b5cf6);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2.5rem;
         font-weight: bold;
-        box-shadow: 0 0 0 4px #fff, 0 0 0 6px var(--border-color);
+        margin: 0 auto;
     }
     
-    .rank-1 .podium-avatar { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #ffc107; }
+    .rank-1 .podium-avatar { 
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+        box-shadow: 0 0 0 4px #fff, 0 0 0 6px #ffc107; 
+    }
+    
+    .rank-2 .podium-avatar, 
+    .rank-3 .podium-avatar {
+        width: 70px;
+        height: 70px;
+        font-size: 1.75rem;
+    }
+    
     .rank-2 .podium-avatar { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #adb5bd; }
     .rank-3 .podium-avatar { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #cd7f32; }
     
+    /* Score sizes consistent for each position */
     .podium-score {
-        font-size: 2.5rem;
         font-weight: bold;
         color: #343a40;
+    }
+    
+    .rank-1 .podium-score {
+        font-size: 3rem;
+    }
+    
+    .rank-2 .podium-score,
+    .rank-3 .podium-score {
+        font-size: 2rem;
+    }
+    
+    /* Visual podium platforms */
+    .podium-platform {
+        background: #f3f4f6;
+        border-radius: 8px 8px 0 0;
+        position: relative;
+        box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
+        margin-top: 0.5rem;
+    }
+    
+    .platform-1 {
+        height: 40px;
+        z-index: 3;
+    }
+    
+    .platform-2 {
+        height: 30px;
+        z-index: 2;
+    }
+    
+    .platform-3 {
+        height: 20px;
+        z-index: 1;
     }
 
     .leaderboard-list .list-group-item {

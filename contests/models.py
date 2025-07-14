@@ -56,6 +56,9 @@ class Contest(models.Model):
         verbose_name = 'Contest'
         verbose_name_plural = 'Contests'
         ordering = ['start_time']
+        indexes = [
+            models.Index(fields=['status']),  # Add an index on the status field
+        ]
         
     def __str__(self):
         return self.name
@@ -82,6 +85,35 @@ class Contest(models.Model):
         """Checks if the contest is ended"""
         now = timezone.now()
         return now > self.end_time
+    
+    def is_registration_open(self):
+        """Checks if registration for the contest is open"""
+        # Registration is open for upcoming and active contests
+        return self.status in ['upcoming', 'active']
+    
+    def update_status(self):
+        """Updates the status field based on the current time"""
+        if self.is_active():
+            self.status = 'active'
+        elif self.is_upcoming():
+            self.status = 'upcoming'
+        elif self.is_ended():
+            self.status = 'ended'
+        # 'cancelled' status is set manually, not automatically updated
+        
+    def save(self, *args, **kwargs):
+        """Override save to update the status field"""
+        self.update_status()
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def update_all_statuses(cls):
+        """Updates the status of all contests based on their current time"""
+        for contest in cls.objects.all():
+            old_status = contest.status
+            contest.update_status()
+            if old_status != contest.status:
+                contest.save()
     
 class ContestProblem(models.Model):
     contest = models.ForeignKey(
