@@ -1,4 +1,69 @@
-### **Definitive Guide: Setting Up Your Development Environment in WSL**
+# Online Judge Platform
+
+[![Deployment Status](https://img.shields.io/badge/deployment-active-brightgreen)](http://3.86.159.164:8000/)
+[![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-5.2-green)](https://www.djangoproject.com/)
+[![Docker](https://img.shields.io/badge/Docker-enabled-blue)](https://www.docker.com/)
+[![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20ECR-orange)](https://aws.amazon.com/)
+
+A robust, scalable online coding judge platform that allows users to solve programming problems, participate in contests, and improve their coding skills. This platform supports multiple languages, provides real-time feedback, and includes a comprehensive contest management system.
+
+## 🚀 Live Demo
+
+The project is deployed on AWS EC2: [http://3.86.159.164:8000/](http://3.86.159.164:8000/)
+
+## ✨ Key Features
+
+- **User Authentication & Authorization**: Secure login, registration, and role-based access control
+- **Problem Repository**: Extensive collection of coding problems with difficulty levels and categories
+- **Multi-language Support**: Code execution for Python, C++, and Java
+- **Real-time Code Evaluation**: Secure sandboxed execution with Docker
+- **Contest Management**: Create, manage, and participate in time-bound coding contests
+- **Leaderboard System**: Track user progress and rankings
+- **Problem Creation Portal**: Authorized users can contribute new problems
+- **Admin Dashboard**: Manage users, problems, and platform settings
+- **AI Assistant** : Built in Assistatant while problem solving for quick help!!
+
+## 🛠️ Technology Stack
+
+### Backend
+- **Framework**: Django 5.2
+- **API**: Django REST Framework
+- **Task Queue**: Celery
+- **Message Broker**: Redis
+- **Authentication**: Token-based + Session authentication
+
+### DevOps & Deployment
+- **Containerization**: Docker & Docker Compose
+- **CI/CD**: Automated deployment pipeline
+- **Cloud Infrastructure**: AWS (EC2, ECR)
+- **Database**: SQLite (Development), PostgreSQL compatible
+
+### Core Components
+- **Judge System**: Secure code execution via Docker-in-Docker
+- **Async Processing**: Celery workers for non-blocking code evaluation
+- **Data Persistence**: Robust database models with proper relationships
+- **Security**: CSRF protection, permission-based access control
+
+## Architecture Overview
+
+The application follows a microservice-oriented architecture:
+
+1. **Web Service**: Django application serving the frontend and API endpoints
+2. **Redis Service**: Message broker for task queue management
+3. **Celery Workers**: Background task processing for code evaluation
+4. **Judge Core**: Isolated environment for secure code execution
+
+## 🚢 Deployment Workflow
+
+The platform is containerized and deployed using the following pipeline:
+
+1. **Docker Containerization**: Application packaged into Docker containers
+2. **AWS ECR Push**: Container images pushed to Amazon Elastic Container Registry
+3. **EC2 Deployment**: Containers orchestrated and deployed on EC2 instances
+4. **Networking & Security**: Properly configured security groups and network access
+
+## 📚 Development Environment Setup (To Run in Local Machine)
 
 **Step 0: Start Fresh & Clean Up**
 
@@ -25,7 +90,7 @@ First, ensure your WSL has the tools required for Python virtual environments an
     ```
 2.  **Install `python3-venv`:** This package provides the `venv` module for creating virtual environments. The error `ensurepip is not available` means this was missing.
     ```bash
-    sudo apt install python3.12-venv # Use python3.12-venv as your error suggested
+    sudo apt install python3.12-venv # Use python3.12-venv 
     # If python3.12-venv is not found, try `sudo apt install python3-venv`
     ```
 3.  **Install `redis-server`:** This installs the Redis database server. You confirmed this was missing.
@@ -128,44 +193,113 @@ Now you're ready to run all components correctly. You will need three separate W
 This should finally get all your components running correctly without the errors you've been seeing. Take your time with each step, and ensure the virtual environment is always active when installing Python packages or running Django/Celery commands.
 
 
-# Project Screenshots till last milestone
+# Project Demo Screenshots
 
-Here are some screenshots showcasing various functionalities of the Online Judge platform:
-
----
-
-### Problems List Page
-![Problem List Page Screenshot](ScreeenShots/problem_list.png)
-_A clear overview of all available coding problems._
+Screenshots demonstrating the full workflow of the application, from user registration to contest management and problem solving.
 
 ---
 
-### Problem Detail Page (Part 1)
-![Problem Detail Page 1 Screenshot](ScreeenShots/problems_page1.png)
-_Displays the problem statement, input/output format, and examples._
+### 1. Homepage
+![Homepage](ScreeenShots/homepage.png)
+*The landing page of the application.*
 
 ---
 
-### Problem Detail Page (Part 2 - Submission Area)
-![Problem Detail Page 2 Screenshot](ScreeenShots/problems_page2.png)
-_Features the code editor and submission options for a problem._
+### 2. Sign Up Page
+![Sign Up](ScreeenShots/SignUP.png)
+*New users can register here.*
 
 ---
 
-### Submitted Code Detail Page
-![Submitted Code Detail Screenshot](ScreeenShots/submittedcode.png)
-_Detailed view of a specific code submission, including verdict and errors._
+### 3. Login Page
+![Login](ScreeenShots/Login.png)
+*Registered users can log in through this page.*
 
 ---
 
-### User Profile Page
-![User Profile Page Screenshot](ScreeenShots/profile.png)
-_Personalized dashboard showing user statistics and details._
+### 4. Profile Page
+![Profile](ScreeenShots/Profilepage.png)
+*User profile displaying details and past activity.*
 
 ---
 
-### Leaderboard Page
-![Leaderboard Page Screenshot](ScreeenShots/Leaderboard.png)
-_Showcases top users based on solved problems._
+### 5. Problem Solving Interface
+![Problem Solving](ScreeenShots/ProblemSolving.png)
+*Interface for solving coding problems.*
 
 ---
+
+### 6. Problem List
+![Problems List](ScreeenShots/ProblemsList.png)
+*View all available problems.*
+
+---
+
+### 7. Problem Creation Form
+![Problem Creation Form](ScreeenShots/ProbelmCreationform.png)
+*Form for authorized users to create new problems.*
+
+---
+
+### 8. Unauthorized Problem Setter Portal
+![Unauthorized Creator Portal](ScreeenShots/CreatorPortelForUnauthorizedProblemSetters.png)
+*Restricted portal for users not yet authorized to create problems.*
+
+---
+
+### 9. Admin Panel to Authorize Problem Setters
+![Admin Panel](ScreeenShots/AdminpanelToAuthorizeProblemsetters.png)
+*Admin interface to approve new problem setters.*
+
+---
+
+### 10. Authorized Problem Setter Portal
+![Authorized Creator Portal](ScreeenShots/CreatorPortelForauthorizedProblemSetters.png)
+*Full access portal for verified problem creators.*
+
+---
+
+### 11. Contest Creation – Step 1
+![Contest Creation Step 1](ScreeenShots/Contestcreationstep1.png)
+*First step in setting up a new contest.*
+
+---
+
+### 12. All Contests Page
+![All Contests](ScreeenShots/AllContests.png)
+*List of all available contests.*
+
+---
+
+### 13. Contest Submission
+![Contest Submission](ScreeenShots/ContestSubmission.png)
+*Participants can submit solutions during a contest.*
+
+---
+
+### 14. Leaderboard
+![Leaderboard](ScreeenShots/Leaderboard.png)
+*Displays contest rankings and user performance.*
+
+---
+
+# Contributing and Support
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+
+## 🙏 Acknowledgments
+
+- Special thanks to the Django, Celery, and Docker communities for their excellent documentation
+- All users who provided valuable feedback during development
+
+---
+
