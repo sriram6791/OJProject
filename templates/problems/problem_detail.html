@@ -3,7 +3,9 @@
 {% block title %}{{ problem.name }} - Online Judge{% endblock %}
 
 {% block extra_css %}
-<style>
+<style data-timestamp="{{ request.META.REQUEST_TIME }}">
+    /* CSS Version: 20250118-v5-EMERGENCY-UPDATE - FORCE COMPLETE RELOAD */
+    /* CRITICAL: Force browser cache refresh with inline !important styles */
     /* Modern styling enhancements */
     .card {
         border-radius: 12px !important;
@@ -116,7 +118,7 @@
     /* Code textarea styling */
     #codeEditor {
         resize: vertical;
-        min-height: 200px;
+        min-height: 400px;
     }
 
     #codeEditor::placeholder {
@@ -124,49 +126,286 @@
         font-style: italic;
     }
     
-    /* AI Assistant Chat Styling */
+    /* AI Assistant Chat Styling - Light Grey Professional Interface - FORCE OVERRIDE */
     #aiAssistantChatBox {
-        height: 300px;
-        overflow-y: auto;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 15px;
-        background-color: #f8f9fa;
-        margin-bottom: 10px;
+        height: 400px !important;
+        overflow-y: auto !important;
+        border: 1px solid #e9ecef !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        background: #f8f9fa !important;
+        margin-bottom: 15px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        position: relative !important;
+        scroll-behavior: smooth !important;
+    }
+
+    /* Removed dark gradient overlay for light background */
+
+    #aiAssistantChatBox > * {
+        position: relative !important;
+        z-index: 1 !important;
     }
     
     .chat-message {
-        margin-bottom: 15px;
-        padding: 10px 15px;
-        border-radius: 10px;
-        max-width: 80%;
-        word-wrap: break-word;
-        line-height: 1.5;
+        margin-bottom: 20px !important;
+        padding: 16px 20px !important;
+        border-radius: 20px !important;
+        max-width: 75% !important;
+        word-wrap: break-word !important;
+        line-height: 1.6 !important;
+        position: relative !important;
+        animation: messageSlideIn 0.3s ease-out !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    @keyframes messageSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
     
     .chat-message.user {
-        background-color: #0d6efd;
-        color: white;
-        margin-left: auto;
-        border-bottom-right-radius: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        color: white !important;
+        margin-left: auto !important;
+        border-bottom-right-radius: 8px !important;
+        position: relative !important;
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
+    }
+
+    .chat-message.user::after {
+        content: '' !important;
+        position: absolute !important;
+        bottom: 0 !important;
+        right: -8px !important;
+        width: 0 !important;
+        height: 0 !important;
+        border-left: 12px solid #764ba2 !important;
+        border-top: 12px solid transparent !important;
+        border-bottom: 12px solid transparent !important;
     }
     
     .chat-message.ai {
-        background-color: white;
-        color: #212529;
-        margin-right: auto;
-        border-bottom-left-radius: 0;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+        color: #2c3e50 !important;
+        margin-right: auto !important;
+        border-bottom-left-radius: 8px !important;
+        position: relative !important;
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .chat-message.ai::after {
+        content: '' !important;
+        position: absolute !important;
+        bottom: 0 !important;
+        left: -8px !important;
+        width: 0 !important;
+        height: 0 !important;
+        border-right: 12px solid #ffffff !important;
+        border-top: 12px solid transparent !important;
+        border-bottom: 12px solid transparent !important;
+    }
+
+    .chat-message.ai::before {
+        content: '🤖' !important;
+        position: absolute !important;
+        top: -8px !important;
+        left: -8px !important;
+        background: linear-gradient(45deg, #667eea, #764ba2) !important;
+        color: white !important;
+        border-radius: 50% !important;
+        width: 24px !important;
+        height: 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 12px !important;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+        border: 2px solid white !important;
+    }
+
+    /* Custom scrollbar for light chat background */
+    #aiAssistantChatBox::-webkit-scrollbar {
+        width: 8px !important;
+    }
+
+    #aiAssistantChatBox::-webkit-scrollbar-track {
+        background: #e9ecef !important;
+        border-radius: 4px !important;
+    }
+
+    #aiAssistantChatBox::-webkit-scrollbar-thumb {
+        background: #ced4da !important;
+        border-radius: 4px !important;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    #aiAssistantChatBox::-webkit-scrollbar-thumb:hover {
+        background: #adb5bd !important;
     }
     
+    /* Enhanced Chat Input Styling - FORCE OVERRIDE */
     #chatInput {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
+        border-top-right-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        border: 2px solid transparent !important;
+        background: linear-gradient(white, white) padding-box, 
+                    linear-gradient(45deg, #667eea, #764ba2) border-box !important;
+        transition: all 0.3s ease !important;
+        padding: 12px 16px !important;
+        font-size: 16px !important;
+    }
+
+    #chatInput:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+        border-color: transparent !important;
     }
     
     #sendChatBtn {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%) !important;
+        border: none !important;
+        color: white !important;
+        padding: 12px 20px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    }
+
+    #sendChatBtn:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+        background: linear-gradient(45deg, #5a67d8 0%, #6b46c1 100%) !important;
+    }
+
+    #sendChatBtn:active {
+        transform: translateY(0) !important;
+    }
+
+    /* Loading indicator styling */
+    #chatLoadingIndicator {
+        background: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 20px !important;
+        padding: 8px 16px !important;
+        display: inline-block !important;
+        margin: 10px auto !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(102, 126, 234, 0.2) !important;
+    }
+
+    #chatLoadingIndicator .fas {
+        color: #667eea !important;
+    }
+    
+    /* AI Assistant Action Buttons - Simple and Effective */
+    .ai-actions-container {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 30px;
+        padding-bottom: 10px;
+    }
+
+    button.ai-action-btn {
+        font-size: 0.9rem;
+        padding: 12px 24px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border: none;
+        color: white;
+        min-width: 150px;
+        text-align: center;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        letter-spacing: 0.5px;
+        outline: none;
+        text-decoration: none;
+    }
+
+    button.ai-action-btn .fas {
+        margin-right: 8px;
+    }
+
+    button.ai-action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 20px rgba(0, 0, 0, 0.2);
+        filter: brightness(1.1);
+    }
+
+    button.ai-action-btn:active {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    button.ai-action-btn:disabled {
+        transform: none;
+        box-shadow: none;
+        opacity: 0.5;
+        cursor: not-allowed;
+        filter: grayscale(50%);
+    }
+
+    /* Direct button styling with specific selectors */
+    button.ai-analyze-btn {
+        background: linear-gradient(45deg, #8A2BE2, #6a5acd);
+        border: none;
+    }
+
+    button.ai-explain-btn {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+    }
+
+    button.ai-dryrun-btn {
+        background: linear-gradient(45deg, #fd7e14, #ffc107);
+        border: none;
+    }
+
+    /* Fallback solid colors if gradients don't work */
+    button#analyzeCodeBtn {
+        background-color: #8A2BE2;
+        color: white;
+        border: none;
+    }
+
+    button#explainCodeBtn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+    }
+
+    button#dryRunBtn {
+        background-color: #fd7e14;
+        color: white;
+        border: none;
+    }
+
+    @media (max-width: 768px) {
+        .ai-actions-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        button.ai-action-btn {
+            min-width: unset;
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -178,7 +417,9 @@
     <script type="application/json" id="problem-data">
         {
             "problemId": {{ problem.id }},
-            "problemName": "{{ problem.title|default:problem.name|escapejs }}"
+            "problemName": "{{ problem.title|default:problem.name|escapejs }}",
+            "problemStatement": "{{ problem.description|default:problem.statement|escapejs }}",
+            "problemDifficulty": "{{ problem.difficulty|escapejs }}"
         }
     </script>
     <div class="row g-4">
@@ -261,7 +502,7 @@
                             </div>
                             <div class="mt-3">
                                 <label for="codeEditor" class="form-label fw-semibold">Your Code</label>
-                                <textarea class="form-control border" id="codeEditor" name="code" rows="25" 
+                                <textarea class="form-control border" id="codeEditor" name="code" rows="35" 
                                         placeholder="Write your solution here..." required
                                         style="font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 18px; line-height: 1.5;"></textarea>
                             </div>
@@ -312,12 +553,34 @@
                     </h4>
                 </div>
                 <div class="card-body p-4">
-                    <div id="aiAssistantChatBox">
-                        <div class="chat-message ai">Hello! I'm your AI Assistant. How can I help you with this problem today?</div>
+                    <!-- AI Action Buttons -->
+                    <div class="ai-actions-container" style="margin-bottom: 30px; padding-bottom: 10px;">
+                        <button class="ai-action-btn ai-analyze-btn" id="analyzeCodeBtn" 
+                                style="background: linear-gradient(45deg, #8A2BE2, #6a5acd); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-search me-2"></i>Analyze Code
+                        </button>
+                        <button class="ai-action-btn ai-explain-btn" id="explainCodeBtn"
+                                style="background: linear-gradient(45deg, #28a745, #20c997); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-lightbulb me-2"></i>Explain Code
+                        </button>
+                        <button class="ai-action-btn ai-dryrun-btn" id="dryRunBtn"
+                                style="background: linear-gradient(45deg, #fd7e14, #ffc107); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-play-circle me-2"></i>Dry Run
+                        </button>
+                    </div>
+                    
+                    <div id="aiAssistantChatBox" 
+                         style="height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 16px; padding: 20px; background: #f8f9fa; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); position: relative; scroll-behavior: smooth;">
+                        <div class="chat-message ai" 
+                             style="margin-bottom: 20px; padding: 16px 20px; border-radius: 20px; max-width: 75%; word-wrap: break-word; line-height: 1.6; position: relative; animation: messageSlideIn 0.3s ease-out; box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(0, 0, 0, 0.05); background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); color: #2c3e50; margin-right: auto; border-bottom-left-radius: 8px;">
+                            Hi! I'm your coding assistant. I can help you with algorithms, data structures, debugging, and coding concepts related to this problem. Feel free to ask about programming approaches, time complexity, or clarifications about the problem statement!
+                        </div>
                     </div>
                     <div class="input-group mt-3">
-                        <input type="text" id="chatInput" class="form-control" placeholder="Ask me anything about the problem...">
-                        <button class="btn btn-primary" id="sendChatBtn">
+                        <input type="text" id="chatInput" class="form-control" placeholder="Ask about algorithms, debugging, or coding approaches..."
+                               style="border-top-right-radius: 0; border-bottom-right-radius: 0; border: 2px solid transparent; background: linear-gradient(white, white) padding-box, linear-gradient(45deg, #667eea, #764ba2) border-box; transition: all 0.3s ease; padding: 12px 16px; font-size: 16px;">
+                        <button class="btn btn-primary" id="sendChatBtn"
+                                style="border-top-left-radius: 0; border-bottom-left-radius: 0; background: linear-gradient(45deg, #667eea 0%, #764ba2 100%); border: none; color: white; padding: 12px 20px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
                             <i class="fas fa-paper-plane"></i> Send
                         </button>
                     </div>
@@ -443,8 +706,13 @@ document.addEventListener('DOMContentLoaded', function() {
             gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
             matchBrackets: true,
             autoCloseBrackets: true,
-            styleActiveLine: true
+            styleActiveLine: true,
+            height: "400px",  // Set explicit height
+            viewportMargin: Infinity  // Show all content without virtual scrolling
         });
+        
+        // Set explicit size after initialization
+        editor.setSize(null, "610px");
         
         // Make editor globally available
         window.editor = editor;
@@ -740,83 +1008,210 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendChatBtn = document.getElementById('sendChatBtn');
     const aiAssistantChatBox = document.getElementById('aiAssistantChatBox');
     const chatLoadingIndicator = document.getElementById('chatLoadingIndicator');
+    
+    // New AI Assistant action buttons
+    const analyzeCodeBtn = document.getElementById('analyzeCodeBtn');
+    const explainCodeBtn = document.getElementById('explainCodeBtn');
+    const dryRunBtn = document.getElementById('dryRunBtn');
 
-    let chatHistory = []; // Stores the conversation history
+    // Function to get current code from editor
+    function getCurrentCode() {
+        if (window.editor) {
+            return window.editor.getValue();
+        }
+        return document.getElementById('codeEditor').value;
+    }
 
-    async function sendMessageToAI() {
-        const userMessage = chatInput.value.trim();
-        if (!userMessage) return;
+    // Function to get current language
+    function getCurrentLanguage() {
+        return document.getElementById('languageSelect').value;
+    }
 
-        // Display user message
-        const userMessageDiv = document.createElement('div');
-        userMessageDiv.className = 'chat-message user';
-        userMessageDiv.textContent = userMessage;
-        aiAssistantChatBox.appendChild(userMessageDiv);
-        chatInput.value = ''; // Clear input
-        aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight; // Scroll to bottom
+    // Function to get test cases for dry run
+    function getTestCases() {
+        const testCases = [];
+        
+        // Find sample input and output sections
+        const sampleSections = document.querySelectorAll('.bg-light.rounded-3');
+        
+        if (sampleSections.length >= 2) {
+            const inputSection = sampleSections[0];
+            const outputSection = sampleSections[1];
+            
+            const inputCode = inputSection.querySelector('pre code');
+            const outputCode = outputSection.querySelector('pre code');
+            
+            if (inputCode && outputCode) {
+                const input = inputCode.textContent.trim();
+                const output = outputCode.textContent.trim();
+                
+                if (input && output && input !== 'No sample input available.' && output !== 'No sample output available.') {
+                    testCases.push({
+                        input: input,
+                        expected_output: output
+                    });
+                }
+            }
+        }
+        
+        return testCases;
+    }
 
-        // Add user message to chat history
-        chatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+    // Generic function to send AI requests
+    async function sendAIRequest(actionType, message = '') {
+        const code = getCurrentCode();
+        const language = getCurrentLanguage();
+        
+        if (!code && actionType !== 'chat') {
+            addAIMessage('Please write some code in the editor first before using this feature.', 'ai');
+            return;
+        }
 
         // Show loading indicator
         chatLoadingIndicator.style.display = 'block';
-        aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight; // Scroll to bottom
+        aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight;
+
+        // Disable buttons during request
+        const buttons = [analyzeCodeBtn, explainCodeBtn, dryRunBtn, sendChatBtn];
+        buttons.forEach(btn => {
+            if (btn) btn.disabled = true;
+        });
 
         try {
-            // IMPORTANT: Use your actual API key here for local deployment.
-            const apiKey = "AIzaSyCUhEOQ6Z0YTuJZk_bB_2M7vfeI3LVKI5E"; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
             const payload = {
-                contents: chatHistory,
-                // You can add generationConfig here if you need specific response formats or safety settings
-                // generationConfig: {
-                //     temperature: 0.7,
-                //     topP: 0.95,
-                //     topK: 40,
-                //     maxOutputTokens: 1024,
-                // }
+                message: message,
+                problem_context: {
+                    name: problemData.problemName,
+                    statement: problemData.problemStatement,
+                    difficulty: problemData.problemDifficulty
+                },
+                code: code,
+                language: language,
+                action_type: actionType
             };
 
-            const response = await fetch(apiUrl, {
+            // Add test cases for dry run
+            if (actionType === 'dry_run') {
+                payload.test_cases = getTestCases();
+            }
+
+            const response = await fetch("{% url 'problems:ai_assistant_chat' %}", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify(payload)
             });
 
             const result = await response.json();
             
             let aiResponseText = "Sorry, I couldn't get a response. Please try again.";
-            if (result.candidates && result.candidates.length > 0 &&
-                result.candidates[0].content && result.candidates[0].content.parts &&
-                result.candidates[0].content.parts.length > 0) {
-                aiResponseText = result.candidates[0].content.parts[0].text;
+            if (result.response) {
+                aiResponseText = result.response;
             } else if (result.error) {
-                aiResponseText = `Error: ${result.error.message}`;
-                console.error("Gemini API error:", result.error);
+                aiResponseText = `Error: ${result.error}`;
+                console.error("AI Assistant error:", result.error);
             }
 
             // Display AI response
-            const aiMessageDiv = document.createElement('div');
-            aiMessageDiv.className = 'chat-message ai';
-            // Use innerHTML to allow for basic formatting if the LLM returns it (e.g., newlines)
-            aiMessageDiv.innerHTML = aiResponseText.replace(/\n/g, '<br>'); 
-            aiAssistantChatBox.appendChild(aiMessageDiv);
-            aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight; // Scroll to bottom
-
-            // Add AI response to chat history
-            chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
+            addAIMessage(aiResponseText, 'ai');
 
         } catch (error) {
-            console.error("Error communicating with Gemini API:", error);
-            const errorMessageDiv = document.createElement('div');
-            errorMessageDiv.className = 'chat-message ai';
-            errorMessageDiv.textContent = "An error occurred while fetching the response. Please check your internet connection or try again later.";
-            aiAssistantChatBox.appendChild(errorMessageDiv);
-            aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight;
+            console.error("Error communicating with AI Assistant:", error);
+            addAIMessage("An error occurred while fetching the response. Please check your internet connection or try again later.", 'ai');
         } finally {
-            chatLoadingIndicator.style.display = 'none'; // Hide loading indicator
+            chatLoadingIndicator.style.display = 'none';
+            
+            // Re-enable buttons
+            buttons.forEach(btn => {
+                if (btn) btn.disabled = false;
+            });
         }
+    }
+
+    // Function to add message to chat
+    function addAIMessage(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${sender}`;
+        
+        // FORCE INLINE STYLES for new messages to override cache
+        if (sender === 'user') {
+            messageDiv.style.cssText = `
+                margin-bottom: 20px !important;
+                padding: 16px 20px !important;
+                border-radius: 20px !important;
+                max-width: 75% !important;
+                word-wrap: break-word !important;
+                line-height: 1.6 !important;
+                position: relative !important;
+                animation: messageSlideIn 0.3s ease-out !important;
+                box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4) !important;
+                backdrop-filter: blur(10px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                color: white !important;
+                margin-left: auto !important;
+                border-bottom-right-radius: 8px !important;
+            `;
+        } else {
+            messageDiv.style.cssText = `
+                margin-bottom: 20px !important;
+                padding: 16px 20px !important;
+                border-radius: 20px !important;
+                max-width: 75% !important;
+                word-wrap: break-word !important;
+                line-height: 1.6 !important;
+                position: relative !important;
+                animation: messageSlideIn 0.3s ease-out !important;
+                box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1) !important;
+                backdrop-filter: blur(10px) !important;
+                border: 1px solid rgba(0, 0, 0, 0.05) !important;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+                color: #2c3e50 !important;
+                margin-right: auto !important;
+                border-bottom-left-radius: 8px !important;
+            `;
+        }
+        
+        messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+        aiAssistantChatBox.appendChild(messageDiv);
+        aiAssistantChatBox.scrollTop = aiAssistantChatBox.scrollHeight;
+    }
+
+    // Original chat function updated
+    async function sendMessageToAI() {
+        const userMessage = chatInput.value.trim();
+        if (!userMessage) return;
+
+        // Display user message
+        addAIMessage(userMessage, 'user');
+        chatInput.value = ''; // Clear input
+
+        // Send chat request
+        await sendAIRequest('chat', userMessage);
+    }
+
+    // Event listeners for new buttons
+    if (analyzeCodeBtn) {
+        analyzeCodeBtn.addEventListener('click', function() {
+            addAIMessage('Analyzing your code...', 'user');
+            sendAIRequest('analyze');
+        });
+    }
+
+    if (explainCodeBtn) {
+        explainCodeBtn.addEventListener('click', function() {
+            addAIMessage('Please explain my code', 'user');
+            sendAIRequest('explain');
+        });
+    }
+
+    if (dryRunBtn) {
+        dryRunBtn.addEventListener('click', function() {
+            addAIMessage('Dry run my code with sample input', 'user');
+            sendAIRequest('dry_run');
+        });
     }
 
     sendChatBtn.addEventListener('click', sendMessageToAI);
@@ -825,6 +1220,26 @@ document.addEventListener('DOMContentLoaded', function() {
             sendMessageToAI();
         }
     });
+    
+    // FORCE CHAT STYLING - Add hover effects dynamically
+    const chatStyleSheet = document.createElement('style');
+    chatStyleSheet.innerHTML = `
+        #sendChatBtn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+            background: linear-gradient(45deg, #5a67d8 0%, #6b46c1 100%) !important;
+        }
+        #chatInput:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2) !important;
+            border-color: transparent !important;
+        }
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    `;
+    document.head.appendChild(chatStyleSheet);
 });
 </script>
 {% endblock %}
