@@ -1,4 +1,7 @@
 #!/bin/bash
+set -e
+
+echo "Starting Django application setup..."
 
 # Fix Docker socket permissions if it exists
 if [ -e /var/run/docker.sock ]; then
@@ -40,15 +43,31 @@ else
     echo "No Redis URL configured or not using Redis. Skipping Redis check."
 fi
 
+# Create log directories
+echo "Creating log directories..."
+mkdir -p /var/log/supervisor /var/log/celery /var/log/django
+
 # Run Django migrations
 echo "Running Django migrations..."
-python manage.py makemigrations
-python manage.py migrate
+python manage.py makemigrations --noinput
+python manage.py migrate --noinput
 
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-# Start supervisor
+# Create superuser if it doesn't exist
+echo "Setting up superuser..."
+python manage.py shell << EOF
+import os
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(username='admin').exists():
+    User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+    print('Superuser created: admin/admin123')
+else:
+    print('Superuser already exists')
+EOF
+
 echo "Starting supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

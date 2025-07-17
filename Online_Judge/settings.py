@@ -15,14 +15,22 @@ from django.contrib.messages import constants as messages
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+# Look for .env file in the project root directory
+env_path = BASE_DIR / '.env'
+load_dotenv(dotenv_path=env_path)
+
 # AI Assistant Configuration
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+
+# Debug: Print to check if API key is loaded (remove in production)
+if GEMINI_API_KEY:
+    print(f"✅ Gemini API Key loaded: {GEMINI_API_KEY[:10]}...")
+else:
+    print("❌ Gemini API Key not found in environment variables")
 
 
 # Quick-start development settings - unsuitable for production
@@ -36,9 +44,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']  # Allow all hosts for Docker deployment
 
-
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -57,7 +63,9 @@ INSTALLED_APPS = [
     'creator.apps.CreatorConfig',
 ]
 
+# Add middleware for proper Docker handling
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -178,16 +186,22 @@ REST_FRAMEWORK = {
 
 # CORS Headers settings
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
     "http://localhost:5173", # Your React development server
     "http://127.0.0.1:5173",
     # Add your production frontend URL here when deployed
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True  # For development - remove in production
 
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
     'POST',
     'PUT',
+    'PATCH',
+    'OPTIONS',
 ]
 
 CORS_ALLOW_HEADERS = [

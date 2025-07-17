@@ -276,3 +276,11 @@ For issues and questions:
 ## License
 
 This project is licensed under the MIT License.
+
+
+## USE FULL COMMANDS:
+```
+docker build -t online-judge:latest .
+docker compose down;docker compose up -d
+```
+should be applied in the PS I:\Online_Judge> folder of the terminal
