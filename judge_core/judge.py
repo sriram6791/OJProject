@@ -6,14 +6,20 @@ import tempfile
 import shutil
 import time
 import sys
-import sys # Import sys for fallback function
 
-# Remove module-level model imports to avoid circular imports
+# Base directory for temporary files
+# Use absolute path that works in both local and Docker environments
+import tempfile
+import os
+import sys
 
-# --- REMOVE THESE LINES ---
-# TEMP_DIR_BASE = os.path.join(tempfile.gettempdir(), "oj_submissions")
-# os.makedirs(TEMP_DIR_BASE, exist_ok=True)
-# --- END REMOVAL ---
+# Determine the correct temp directory
+if os.path.exists('/tmp'):
+    TEMP_DIR_BASE = "/tmp/oj_submissions"
+else:
+    TEMP_DIR_BASE = os.path.join(tempfile.gettempdir(), "oj_submissions")
+
+os.makedirs(TEMP_DIR_BASE, exist_ok=True)
 
 def _run_docker_command(command, time_limit, memory_limit_mb, stdin_data=None, work_dir="/tmp"):
     """
@@ -31,12 +37,14 @@ def _run_docker_command(command, time_limit, memory_limit_mb, stdin_data=None, w
     # -i: Keep stdin open
     # -a stdin,stdout,stderr: Attach to stdin, stdout, and stderr
     # -w: Set working directory inside the container
+    # --security-opt apparmor:unconfined: Disable AppArmor for execution permissions
     docker_cmd_prefix = [
         "docker", "run", "--rm", "--network=none",
         f"--memory={memory_limit_mb}m",
         f"--name={container_name}",
         "-i", # Keep stdin open
         "-a", "stdin", "-a", "stdout", "-a", "stderr",
+        "--security-opt", "apparmor:unconfined",  # Allow execution permissions
         "-w", work_dir # Set working directory inside container
     ]
 
@@ -50,7 +58,7 @@ def _run_docker_command(command, time_limit, memory_limit_mb, stdin_data=None, w
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True, # Decode stdout/stderr as text
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+            preexec_fn=os.setsid if os.name != 'nt' else None # For killing the process group on timeout
         )
 
         stdout_data, stderr_data = None, None
@@ -62,7 +70,10 @@ def _run_docker_command(command, time_limit, memory_limit_mb, stdin_data=None, w
             stdout_data, stderr_data = process.communicate(input=stdin_data, timeout=time_limit)
         except subprocess.TimeoutExpired:
             # Kill the process group to ensure the Docker container is stopped
-            os.killpg(process.pid, 9) # Send SIGKILL to the process group
+            if os.name != 'nt':
+                os.killpg(process.pid, 9) # Send SIGKILL to the process group
+            else:
+                process.kill()
             process.wait() # Wait for the process to actually terminate
             stdout_data, stderr_data = process.communicate() # Collect any remaining output
             status_message = "Time Limit Exceeded"
@@ -97,26 +108,21 @@ def judge_python(code, input_data, time_limit, memory_limit_mb):
     Judges Python code using a Docker container.
     Returns (output, error, verdict, execution_time, memory_used).
     """
-    # Create temp directory with proper permissions
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Ensure temp_dir has proper permissions
-        os.chmod(temp_dir, 0o755)
-        
+    # Create a unique temporary directory
+    temp_dir = tempfile.mkdtemp(dir=TEMP_DIR_BASE)
+    
+    try:
         code_file_path = os.path.join(temp_dir, "solution.py")
         with open(code_file_path, "w") as f:
             f.write(code)
-        
-        # Make sure the file is readable
-        os.chmod(code_file_path, 0o644)
 
         # Docker command to run Python script
-        # -v: Mount the temporary directory into the container
-        # python:3.9-slim is a lightweight Python image
-        command = ["python", "/tmp/solution.py"]
-        docker_command = ["-v", f"{temp_dir}:/tmp", "python:3.9-slim"] + command
+        # Mount temp directory to /code in the container
+        command = ["python", "/code/solution.py"]
+        docker_command = ["-v", f"{temp_dir}:/code", "python:3.9-slim"] + command
 
         stdout, stderr, exit_code, status_message = _run_docker_command(
-            docker_command, time_limit, memory_limit_mb, stdin_data=input_data, work_dir="/tmp" # Passed work_dir
+            docker_command, time_limit, memory_limit_mb, stdin_data=input_data, work_dir="/code"
         )
 
         execution_time = 0.0 # Placeholder, will be more accurate with cgroup/stats
@@ -134,6 +140,11 @@ def judge_python(code, input_data, time_limit, memory_limit_mb):
             verdict = "success" # Program ran successfully, now compare output
 
         return stdout, stderr, verdict, execution_time, memory_used
+    
+    finally:
+        # Clean up temporary directory
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def judge_cpp(code, input_data, time_limit, memory_limit_mb):
@@ -141,41 +152,26 @@ def judge_cpp(code, input_data, time_limit, memory_limit_mb):
     Judges C++ code using a Docker container. Involves compilation and then execution.
     Returns (output, error, verdict, execution_time, memory_used).
     """
-    # --- MODIFIED LINE: Removed dir=TEMP_DIR_BASE ---
-    with tempfile.TemporaryDirectory() as temp_dir:
+    # Create a unique temporary directory
+    temp_dir = tempfile.mkdtemp(dir=TEMP_DIR_BASE)
+    
+    try:
         source_file_path = os.path.join(temp_dir, "solution.cpp")
-        # executable_file_path = os.path.join(temp_dir, "solution") # Not strictly needed
-
         with open(source_file_path, "w") as f:
             f.write(code)
 
-        # --- Compilation Step ---
-        # Mount the temp_dir to /tmp in the container
-        # Run g++ /tmp/solution.cpp -o /tmp/solution inside the container
-        compile_command = ["g++", "solution.cpp", "-o", "solution"] # Refer to filename, not path
-        docker_compile_command = ["-v", f"{temp_dir}:/tmp", "gcc:latest"] + compile_command
+        # --- Compilation and Execution in one step ---
+        # Copy files to container's /tmp directory to avoid volume mount execution issues
+        # Mount temp directory to /code in the container, but copy and execute from /tmp
+        compile_and_run_command = ["sh", "-c", "cp /code/solution.cpp /tmp/ && cd /tmp && g++ solution.cpp -o solution && ./solution"]
+        docker_command = ["-v", f"{temp_dir}:/code", "gcc:latest"] + compile_and_run_command
 
-        compile_stdout, compile_stderr, compile_exit_code, compile_status_message = _run_docker_command(
-            docker_compile_command,
-            time_limit=10,
-            memory_limit_mb=memory_limit_mb,
-            work_dir="/tmp" # Crucially, set the working directory for g++
-        )
-
-        if compile_exit_code != 0:
-            return "", compile_stderr, "compilation_error", 0.0, 0.0
-
-        # --- Execution Step ---
-        # Run /tmp/solution inside the container
-        execute_command = ["./solution"] # Execute relative to work_dir
-        docker_execute_command = ["-v", f"{temp_dir}:/tmp", "gcc:latest"] + execute_command
-
-        stdout, stderr, execute_exit_code, execute_status_message = _run_docker_command(
-            docker_execute_command,
+        stdout, stderr, exit_code, status_message = _run_docker_command(
+            docker_command,
             time_limit,
             memory_limit_mb,
             stdin_data=input_data,
-            work_dir="/tmp" # Crucially, set the working directory for execution
+            work_dir="/tmp"
         )
 
         execution_time = 0.0 # Placeholder
@@ -183,60 +179,68 @@ def judge_cpp(code, input_data, time_limit, memory_limit_mb):
 
         verdict = "pending" # Default
 
-        if execute_status_message == "Time Limit Exceeded":
+        # Check if compilation failed (g++ error messages in stderr)
+        if "error:" in stderr and "compilation terminated" in stderr:
+            verdict = "compilation_error"
+            return "", stderr, verdict, execution_time, memory_used
+
+        if status_message == "Time Limit Exceeded":
             verdict = "time_limit_exceeded"
-        elif execute_status_message == "Memory Limit Exceeded":
+        elif status_message == "Memory Limit Exceeded":
             verdict = "memory_limit_exceeded"
-        elif execute_exit_code != 0:
+        elif exit_code != 0:
             verdict = "runtime_error"
         else:
             verdict = "success" # Program ran successfully
 
         return stdout, stderr, verdict, execution_time, memory_used
+    
+    finally:
+        # Clean up temporary directory
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 def judge_java(code, input_data, time_limit, memory_limit_mb):
     """
     Judges Java code using a Docker container. Involves compilation and then execution.
     Assumes the main class is named 'Solution'.
     """
-    # --- MODIFIED LINE: Removed dir=TEMP_DIR_BASE ---
-    with tempfile.TemporaryDirectory() as temp_dir:
-        source_file_name = "Solution.java" # Define the source file name
-        source_file_path_host = os.path.join(temp_dir, source_file_name) # Host path
+    # Create a unique temporary directory
+    temp_dir = tempfile.mkdtemp(dir=TEMP_DIR_BASE)
+    
+    try:
+        source_file_name = "Solution.java"
+        source_file_path_host = os.path.join(temp_dir, source_file_name)
 
         with open(source_file_path_host, "w") as f:
             f.write(code)
 
         # --- Compilation Step ---
-        # Using openjdk:11-slim image for Java
-        # Mount the temp_dir to /tmp in the container
-        # Run javac Solution.java inside the container from /tmp
-        compile_command = ["javac", source_file_name] # Just the filename, work_dir is /tmp
-        docker_compile_command = ["-v", f"{temp_dir}:/tmp", "openjdk:11-slim"] + compile_command
+        # Mount temp directory to /code in the container
+        compile_command = ["javac", "/code/Solution.java"]
+        docker_compile_command = ["-v", f"{temp_dir}:/code", "openjdk:11-slim"] + compile_command
 
         compile_stdout, compile_stderr, compile_exit_code, compile_status_message = _run_docker_command(
             docker_compile_command,
-            time_limit=10, # Compilation usually has a generous time limit
+            time_limit=10,
             memory_limit_mb=memory_limit_mb,
-            work_dir="/tmp" # Crucially, set the working directory for javac
+            work_dir="/code"
         )
 
         if compile_exit_code != 0:
             return "", compile_stderr, "compilation_error", 0.0, 0.0
 
         # --- Execution Step ---
-        # Run java Solution inside the container (from /tmp directory where .class file is)
-        # The .class file is also in /tmp because javac compiled it there.
-        # We need to ensure 'java Solution' is run from /tmp.
-        execute_command = ["java", "Solution"] # Just the class name, not .class
-        docker_execute_command = ["-v", f"{temp_dir}:/tmp", "openjdk:11-slim"] + execute_command
+        # Run java Solution inside the container
+        execute_command = ["java", "-cp", "/code", "Solution"]
+        docker_execute_command = ["-v", f"{temp_dir}:/code", "openjdk:11-slim"] + execute_command
 
         stdout, stderr, execute_exit_code, execute_status_message = _run_docker_command(
             docker_execute_command,
             time_limit,
             memory_limit_mb,
             stdin_data=input_data,
-            work_dir="/tmp" # Crucially, set the working directory for java
+            work_dir="/code"
         )
 
         verdict = "pending"
@@ -253,6 +257,11 @@ def judge_java(code, input_data, time_limit, memory_limit_mb):
             verdict = "success"
 
         return stdout, stderr, verdict, execution_time, memory_used
+    
+    finally:
+        # Clean up temporary directory
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def clean_output(output_str):
@@ -300,7 +309,7 @@ def evaluate_solution(submission_id):
             memory_used_tc = 0.0
 
             if submission.language == 'python':
-                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python_fallback(
+                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python(
                     submission.code, input_data, TIME_LIMIT_SECONDS, MEMORY_LIMIT_MB
                 )
             elif submission.language == 'cpp':
@@ -369,9 +378,6 @@ def evaluate_solution(submission_id):
         print(f"Submission {submission.id} for Problem {problem.name} finished with verdict: {final_verdict}")
 
     except Exception as e:
-        # Import inside exception handler to avoid circular import issues
-        from submissions.models import Submission
-        print(f"Submission with ID {submission_id} does not exist.")
         print(f"Error evaluating submission {submission_id}: {e}")
         try:
             submission = Submission.objects.get(id=submission_id)
@@ -381,6 +387,7 @@ def evaluate_solution(submission_id):
             submission.save()
         except:
             pass
+
         
 def evaluate_contest_solution(contest_submission_id):
     """
@@ -434,7 +441,7 @@ def evaluate_contest_solution(contest_submission_id):
 
             # Run the appropriate judge based on language
             if contest_submission.language == 'python':
-                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python_fallback(
+                stdout, stderr, verdict_for_test_case, execution_time_tc, memory_used_tc = judge_python(
                     contest_submission.code, input_data, TIME_LIMIT_SECONDS, MEMORY_LIMIT_MB
                 )
             elif contest_submission.language == 'cpp':
@@ -544,7 +551,7 @@ def evaluate_with_custom_input(code, input_data, language, time_limit=5, memory_
 
         # Run the appropriate judge based on language
         if language == 'python':
-            stdout, stderr, verdict, execution_time, memory_used = judge_python_fallback(
+            stdout, stderr, verdict, execution_time, memory_used = judge_python(
                 code, input_data, time_limit, memory_limit
             )
         elif language == 'cpp':
@@ -577,45 +584,3 @@ def evaluate_with_custom_input(code, input_data, language, time_limit=5, memory_
             'execution_time': 0.0,
             'memory_used': 0.0
         }
-
-def judge_python_fallback(code, input_data, time_limit, memory_limit_mb):
-    """
-    Fallback function to test code execution without Docker.
-    Only for debugging - NOT SECURE for production!
-    """
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            code_file_path = os.path.join(temp_dir, "solution.py")
-            with open(code_file_path, "w") as f:
-                f.write(code)
-            
-            # Run the Python script directly (NOT SECURE!)
-            process = subprocess.Popen(
-                [sys.executable, code_file_path],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            
-            try:
-                stdout, stderr = process.communicate(input=input_data, timeout=time_limit)
-                exit_code = process.returncode
-                
-                execution_time = 0.0  # Placeholder
-                memory_used = 0.0  # Placeholder
-                
-                if exit_code == 0:
-                    verdict = "success"
-                else:
-                    verdict = "runtime_error"
-                    
-                return stdout, stderr, verdict, execution_time, memory_used
-                
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-                return "", "Time Limit Exceeded", "time_limit_exceeded", time_limit, 0.0
-            
-    except Exception as e:
-        return "", f"System Error: {str(e)}", "system_error", 0.0, 0.0

@@ -17,7 +17,9 @@ RUN apt-get update && apt-get install -y \
     docker.io \
     curl \
     netcat-traditional \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -f docker \
+    && chmod 666 /var/run/docker.sock || true
 
 # Create app directory
 WORKDIR /app

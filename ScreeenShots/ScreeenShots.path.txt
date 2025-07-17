@@ -1,8 +1,16 @@
 ScreeenShots/
+├── AdminpanelToAuthorizeProblemsetters.png
+├── AllContests.png
+├── Contestcreationstep1.png
+├── ContestSubmission.png
+├── CreatorPortelForauthorizedProblemSetters.png
+├── CreatorPortelForUnauthorizedProblemSetters.png
+├── homepage.png
 ├── Leaderboard.png
-├── problems_page1.png
-├── problems_page2.png
-├── problem_list.png
-├── profile.png
+├── Login.png
+├── ProbelmCreationform.png
+├── ProblemsList.png
+├── ProblemSolving.png
+├── Profilepage.png
 ├── ScreeenShots.path.txt
-└── submittedcode.png
+└── SignUP.png

@@ -41,3 +41,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+keys
+DeploymentNotes.md
+ScreeenShots\ScreeenShots.path.txt
+ScreeenShots\old\ScreeenShots.path.txt

@@ -192,6 +192,13 @@ Now you're ready to run all components correctly. You will need three separate W
 
 This should finally get all your components running correctly without the errors you've been seeing. Take your time with each step, and ensure the virtual environment is always active when installing Python packages or running Django/Celery commands.
 
+## To Run in docker in Local machine
+- Go to the Onlinejudge Folder
+- run 
+```
+docker build -t online-judge:latest .
+```
+- Then run this
 
 # Project Demo Screenshots
 

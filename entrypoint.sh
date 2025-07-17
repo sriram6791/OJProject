@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# Fix Docker socket permissions if it exists
+if [ -e /var/run/docker.sock ]; then
+    echo "Setting Docker socket permissions..."
+    chmod 666 /var/run/docker.sock
+    ls -la /var/run/docker.sock
+fi
+
+# Create and set permissions for temp directory
+echo "Creating temporary directory for code execution..."
+mkdir -p /tmp/oj_submissions
+chmod 777 /tmp/oj_submissions
+echo "Temp directory created: $(ls -la /tmp/oj_submissions)"
+
 # Check if Redis is available based on environment variable
 if [[ -n "$CELERY_BROKER_URL" && "$CELERY_BROKER_URL" == *"redis://"* ]]; then
     # Extract host and port from CELERY_BROKER_URL

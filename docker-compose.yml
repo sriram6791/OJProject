@@ -21,15 +21,21 @@ services:
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/oj_submissions:/tmp/oj_submissions  # Direct bind mount for temp files
     environment:
       - DJANGO_SETTINGS_MODULE=Online_Judge.settings
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DOCKER_HOST=unix:///var/run/docker.sock
     depends_on:
       redis:
         condition: service_healthy
     privileged: true  # Required for Docker-in-Docker functionality for code execution
     restart: unless-stopped
+    # Add Docker group to match host's Docker group ID
+    user: root
+    group_add:
+      - ${DOCKER_GROUP_ID:-999}
 
 volumes:
   redis_data:
