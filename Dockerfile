@@ -1,4 +1,4 @@
-# Use Python 3.12 as the base image
+# Use Python 3.12 slim as base
 FROM python:3.12-slim
 
 # Set environment variables
@@ -17,26 +17,23 @@ RUN apt-get update && apt-get install -y \
     docker.io \
     curl \
     netcat-traditional \
-    procps \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd -f docker \
-    && chmod 666 /var/run/docker.sock || true
+    && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p /var/log/supervisor /var/log/celery /var/log/django \
-    && mkdir -p /tmp/oj_submissions \
-    && chmod 777 /tmp/oj_submissions
+# Create directories for logs and temp judge files
+RUN mkdir -p /var/log/supervisor /var/log/celery /var/log/django /tmp/oj_submissions
+
+# Set permissions for temp judge directory
+RUN chmod -R 777 /tmp/oj_submissions
 
 # Copy supervisor configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -45,12 +42,8 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Expose port
+# Expose Django port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
-
-# Use entrypoint script
+# Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
