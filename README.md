@@ -8,7 +8,7 @@
 
 A robust, scalable online coding judge platform that allows users to solve programming problems, participate in contests, and improve their coding skills. This platform supports multiple languages, provides real-time feedback, and includes a comprehensive contest management system.
 
-## 🚀 Live Demo
+## 🚀 Live Link
 
 The project is deployed on AWS EC2: [CodeAreana](http://3.83.164.20:8000/)
 
@@ -282,11 +282,10 @@ Screenshots demonstrating the full workflow of the application, from user regist
 *Displays contest rankings and user performance.*
 
 ---
-
-# Contributing and Support
 ## VideoDemo:
 [Video](https://drive.google.com/file/d/1PV_k9hWe9fec4e2QxhMwzLbD-a-0ROMC/view?usp=drive_link)
-
+---
+# Contributing and Support
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
