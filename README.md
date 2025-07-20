@@ -1,6 +1,6 @@
 # Online Judge Platform
 
-[![Deployment Status](https://img.shields.io/badge/deployment-active-brightgreen)](http://3.86.159.164:8000/)
+[![Deployment Status](https://img.shields.io/badge/deployment-active-brightgreen)](http://3.83.164.20:8000/)
 [![Python](https://img.shields.io/badge/Python-3.12-blue)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-5.2-green)](https://www.djangoproject.com/)
 [![Docker](https://img.shields.io/badge/Docker-enabled-blue)](https://www.docker.com/)
