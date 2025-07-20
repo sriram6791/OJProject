@@ -10,7 +10,7 @@ A robust, scalable online coding judge platform that allows users to solve progr
 
 ## 🚀 Live Demo
 
-The project is deployed on AWS EC2: [http://3.86.159.164:8000/](http://3.86.159.164:8000/)
+The project is deployed on AWS EC2: [http://3.83.164.20:8000/](http://3.83.164.20:8000/)
 
 ## ✨ Key Features
 
