@@ -10,7 +10,7 @@ A robust, scalable online coding judge platform that allows users to solve progr
 
 ## 🚀 Live Demo
 
-The project is deployed on AWS EC2: [http://3.83.164.20:8000/](http://3.83.164.20:8000/)
+The project is deployed on AWS EC2: [CodeAreana](http://3.83.164.20:8000/)
 
 ## ✨ Key Features
 
@@ -284,6 +284,8 @@ Screenshots demonstrating the full workflow of the application, from user regist
 ---
 
 # Contributing and Support
+## VideoDemo:
+[Video](https://drive.google.com/file/d/1PV_k9hWe9fec4e2QxhMwzLbD-a-0ROMC/view?usp=drive_link)
 
 ## 🤝 Contributing
 
